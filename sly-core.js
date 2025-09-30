@@ -1060,7 +1060,7 @@ var sly = (async function (exports) {
                 } catch (error1) {
                     /* Catch the very rare "Could not establish connection. Receiving end does not exist" error from Solflare and just try it again: */
                     logger.log(2, `${utils.FleetTimeStamp(fleetName)} <${opName}> Wallet extension error`, error1);
-                    await wait(1000);
+                    await utils.wait(1000);
                     if (customKeypair) {
                         tx.sign([customKeypair]);
                         txSigned = [tx];
@@ -1138,7 +1138,7 @@ var sly = (async function (exports) {
                             preflightCommitment: 'confirmed',
                             maxSupportedTransactionVersion: 1
                         });
-                        if (!txResult) await wait(1000);
+                        if (!txResult) await utils.wait(1000);
                     }
                     if (tryCount >= 130) {
                         continue;
@@ -1571,7 +1571,7 @@ var sly = (async function (exports) {
             }
             //let txResult = await txSignAndSend(tx, fleet, 'UNDOCK', 10);
 
-            //await wait(2000);
+            //await utils.wait(2000);
             updateFleetState(fleet, 'Idle');
 
             resolve(txResult);
@@ -2121,7 +2121,7 @@ var sly = (async function (exports) {
             //let txResult = await txSignAndSend(tx2, fleet, 'STOP MINING', 100);
             let txResult = await txSignAndSend([tx1, tx2], fleet, 'STOP MINING', 100);
 
-            //await wait(2000);
+            //await utils.wait(2000);
             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Idle 💤`);
             updateFleetState(fleet, 'Idle');
 
@@ -2607,7 +2607,7 @@ var sly = (async function (exports) {
             }
 
             // Allow RPC to catch up (to be sure the crew is available before starting the next job)
-            await wait(4000);
+            await utils.wait(4000);
 
             resolve(txResult);
         });
@@ -3287,12 +3287,12 @@ var sly = (async function (exports) {
                             updateFleetState(userFleets[i], `Warp C/D ${warpCDExpireTimeStr}`);
                         }
 
-                        //await wait(Math.max(1000, warpCooldownExpiresAt - Date.now()));
-                        if (warpCooldownExpiresAt - Date.now() < 5000) await wait(Math.max(1000, warpCooldownExpiresAt - Date.now()));
-                        else await wait(5000);
+                        //await utils.wait(Math.max(1000, warpCooldownExpiresAt - Date.now()));
+                        if (warpCooldownExpiresAt - Date.now() < 5000) await utils.wait(Math.max(1000, warpCooldownExpiresAt - Date.now()));
+                        else await utils.wait(5000);
                         if (userFleets[i].stopping) return;
                     }
-                    await wait(2000); //Extra wait to ensure accuracy
+                    await utils.wait(2000); //Extra wait to ensure accuracy
 
                     const fleetPK = userFleets[i].publicKey.toString();
                     const fleetSavedData = await GM.getValue(fleetPK, '{}');
@@ -3337,7 +3337,7 @@ var sly = (async function (exports) {
             }
         }
 
-        await wait(2000); //Allow time for RPC to update
+        await utils.wait(2000); //Allow time for RPC to update
         fleetAcctInfo = await getAccountInfo(userFleets[i].label, 'full fleet info', userFleets[i].publicKey);
         [fleetState, extra] = getFleetState(fleetAcctInfo, userFleets[i]);
         let warpFinish = fleetState == 'MoveWarp' ? extra.warpFinish.toNumber() * 1000 : 0;
@@ -3352,14 +3352,14 @@ var sly = (async function (exports) {
         if (!endTime) endTime = calcEndTime;
 
         userFleets[i].moveEnd = endTime;
-        await wait(moveTime * 1000);
+        await utils.wait(moveTime * 1000);
         while (endTime > Date.now()) {
             const newFleetState = 'Move [' + utils.TimeToStr(new Date(endTime)) + ']';
             updateFleetState(userFleets[i], newFleetState);
-            await wait(Math.max(1000, endTime - Date.now()));
+            await utils.wait(Math.max(1000, endTime - Date.now()));
         }
 
-        //await wait(2000);
+        //await utils.wait(2000);
 
         let localQueueExitWarpSubwarp = false;
         if (globalSettings.queueExitWarpSubwarp) {
@@ -3582,7 +3582,7 @@ var sly = (async function (exports) {
             if (needSupplies && userFleets[i].justResupplied) {
                 logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Fleet just resupplied, but it is trying to resupply again. RPC sync problems? We wait some time to be sure`);
                 updateFleetState(userFleets[i], 'Waiting ...');
-                await wait(15000);
+                await utils.wait(15000);
                 updateFleetState(userFleets[i], 'Idle');
                 userFleets[i].justResupplied = false;
                 return;
@@ -3646,7 +3646,7 @@ var sly = (async function (exports) {
                             if (minerSupplySingleTx && resp) {
                                 transactions.push(resp);
                             }
-                            //await wait(2000);
+                            //await utils.wait(2000);
                         }
                     }
 
@@ -3662,7 +3662,7 @@ var sly = (async function (exports) {
                         } else if (minerSupplySingleTx && fuelResp.tx) {
                             transactions.push(fuelResp.tx);
                         }
-                        //await wait(2000);
+                        //await utils.wait(2000);
                     } else {
                         logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Fuel loading skipped: ${currentFuelCnt} / ${fuelNeeded}`);
                     }
@@ -3678,7 +3678,7 @@ var sly = (async function (exports) {
                         } else if (minerSupplySingleTx && ammoResp.tx) {
                             transactions.push(ammoResp.tx);
                         }
-                        //await wait(2000);
+                        //await utils.wait(2000);
                     } else {
                         logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Ammo loading skipped: ${currentAmmoCnt} / ${ammoForDuration}`);
                     }
@@ -3697,7 +3697,7 @@ var sly = (async function (exports) {
                         } else if (minerSupplySingleTx && foodResp.tx) {
                             transactions.push(foodResp.tx);
                         }
-                        //await wait(2000);
+                        //await utils.wait(2000);
                     } else {
                         logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Food loading skipped: ${currentFoodCnt} / ${foodForDuration}`);
                     }
@@ -3719,7 +3719,7 @@ var sly = (async function (exports) {
                         }
                         userFleets[i].justResupplied = true;
                     }
-                    //await wait(2000);
+                    //await utils.wait(2000);
                     //userFleets[i].moveTarget = userFleets[i].destCoord;
                 } else {
                     if (userFleets[i].stopping) return;
@@ -3741,13 +3741,13 @@ var sly = (async function (exports) {
                 if (userFleets[i].state.slice(0, 5) !== 'ERROR') updateFleetState(userFleets[i], 'Mine [' + utils.TimeToStr(new Date(Date.now() + (miningDuration * 1000))) + ']')
 
                 //Wait for data to propagate through the RPCs
-                await wait(20000);
+                await utils.wait(20000);
 
                 //Fetch update mining state from chain
                 const fleetAcctInfo = await getAccountInfo(userFleets[i].label, 'full fleet info', userFleets[i].publicKey);
                 const [fleetState, extra] = getFleetState(fleetAcctInfo, userFleets[i]);
                 logger.log(4, `${utils.FleetTimeStamp(userFleets[i].label)} chain fleet state: ${fleetState}`);
-                fleetMining = fleetState == 'MineAsteroid' ? extra : null;
+                fleetMining = fleetState === 'MineAsteroid' ? extra : null;
             }
 
             //Move to mining area
@@ -5053,7 +5053,7 @@ var sly = (async function (exports) {
                 if (fleetState === 'MineAsteroid' && !userFleets[i].state.includes('Mine')) {
                     logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - retrying`);
                     for (let retryCount = 1; retryCount <= 4; retryCount++) {
-                        await wait(10000);
+                        await utils.wait(10000);
                         fleetAcctInfo = await getAccountInfo(userFleets[i].label, 'full fleet info', userFleets[i].publicKey);
                         [fleetState, extra] = getFleetState(fleetAcctInfo, userFleets[i]);
                         logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} chain fleet state (after retry ${retryCount}/4): ${fleetState}`);

@@ -132,7 +132,7 @@ var rpc = (function (exports) {
             let curTimestamp = Date.now(), localBlockHeight = 0, loopCounter = 0;
             // if another async call is already requesting the current blocktime, we wait for the result, but max 2.5 seconds (= 20 * 125ms)//
             while (this.cachedEpochInfo.isUpdating && (curTimestamp - this.cachedEpochInfo.lastUpdated) > cachedValueExpires && loopCounter < 20) {
-                await wait(125);
+                await utils.wait(125);
                 loopCounter++;
                 if (loopCounter >= 20 && this.cachedEpochInfo.isUpdating) logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Concurrent read of block height took too long, forcing read`);
             }
