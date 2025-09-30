@@ -144,13 +144,13 @@ var rpc = (function (exports) {
                     this.cachedEpochInfo.blockHeight = curBlockHeight;
                     this.cachedEpochInfo.lastUpdated = Date.now(); // we must use the current time (instead of the previously saved timestamp), because it is possible that several re-reads occured (it would then lead to a block height that's way too high). Also it is possible that the while loop from above took some time.
                     localBlockHeight = curBlockHeight;
-                    logger.log(3, `${utils.utils.FleetTimeStamp(fleet.label)} using requested block height of`, localBlockHeight);
+                    logger.log(3, `${utils.FleetTimeStamp(fleet.label)} using requested block height of`, localBlockHeight);
                     this.cachedEpochInfo.isUpdating = false;
                 } catch (error) {
                     // something went wrong, we reset "isUpdating" and use the cached value
                     localBlockHeight = this.cachedEpochInfo.blockHeight + Math.round((Date.now() - this.cachedEpochInfo.lastUpdated) / useBlockTime);
                     this.cachedEpochInfo.isUpdating = false;
-                    logger.log(1, `${utils.utils.FleetTimeStamp(fleet.label)} Uncaught error in localGetEpochInfo`, error);
+                    logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Uncaught error in localGetEpochInfo`, error);
                 }
             } else {
                 // We estimate the current block height and use the current timestamp for the calculation, because it is possible that the above while loop took some time. The average block time is 420ms, but just to be sure we use a little more (450ms), so a tx doesn't expire too early.
@@ -172,7 +172,7 @@ var rpc = (function (exports) {
                         maxRetries: 0,
                         preflightCommitment: 'confirmed'
                     });
-                    logger.log(3, `${utils.utils.FleetTimeStamp(fleet.label)} <${opName}>`, (retryCount > 0 ? 'TRYING 🌐 ' : '') + 'txHash', txHash, `/ last valid block`, lastValidBlockHeight, `/ cur block`, curBlockHeight);
+                    logger.log(3, `${utils.FleetTimeStamp(fleet.label)} <${opName}>`, (retryCount > 0 ? 'TRYING 🌐 ' : '') + 'txHash', txHash, `/ last valid block`, lastValidBlockHeight, `/ cur block`, curBlockHeight);
                     if (!txHash) return {txHash, confirmation: {name: 'TransactionExpiredBlockheightExceededError'}};
                 }
                 try {
