@@ -200,7 +200,7 @@ var rpc = (function (exports) {
         }
 
         async signatureStatusHandler() {
-            const currentHashes = this.signatureStatusQueue.splice(0, this.signatureStatusQueue.length);//
+            const currentHashes = this.signatureStatusQueue.splice(0, this.signatureStatusQueue.length);//coco
             if (currentHashes.length > 0) {
 
                 const txHashes = currentHashes.map(req => req.txHash);
