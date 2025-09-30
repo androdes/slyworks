@@ -5874,6 +5874,7 @@ var sly = (async function (exports) {
     exports.startCraft = startCraft;
     exports.updateAssistStatus = updateAssistStatus;
     exports.getAccountInfo = getAccountInfo;
+    exports.updateFleetMiscStats= updateFleetMiscStats;
     return exports;
 
 

@@ -1831,9 +1831,9 @@
 
         try {
             // Obtenir la position actuelle de la flotte
-            let fleetAcctInfo = await getAccountInfo(fleet.label, 'fix coordinates', fleet.publicKey);
-            updateFleetMiscStats(fleet, fleetAcctInfo);
-            let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
+            let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'fix coordinates', fleet.publicKey);
+            slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
+            let [fleetState, coords] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
             logger.log(4, `Fleet ${fleet.label} current position:`, coords);
 
@@ -2333,9 +2333,9 @@
 
             if (fleet.workflowData && fleet.currentWorkflowStep) {
                 fleet.fontColor = 'lightblue';
-                let fleetAcctInfo = await getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
-                updateFleetMiscStats(fleet, fleetAcctInfo);
-                let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
+                let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
+                slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
+                let [fleetState, coords] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
                 // Configurer l'étape si pas encore fait
                 if (!fleet.stepConfigured && fleetState !== 'StarbaseLoadingBay') {
@@ -2394,8 +2394,8 @@
         if (!fleet.currentWorkflowStep) return false;
 
         try {
-            let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'vérification workflow', fleet.publicKey);
-            updateFleetMiscStats(fleet, fleetAcctInfo);
+            let fleetAcctInfo = await slyModule.slyModule.getAccountInfo(fleet.label, 'vérification workflow', fleet.publicKey);
+            slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
             let [fleetState, extra] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
             // Vérifier si la flotte est dans un état d'erreur
@@ -2529,9 +2529,9 @@
             logger.log(4, `Resupplied: ${fleetSavedData.resupplied} moving: ${fleetSavedData.moving}`);
 
             if (!fleet.resupplied && !fleet.moving) {
-                let fleetAcctInfo = await getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
-                updateFleetMiscStats(fleet, fleetAcctInfo);
-                let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
+                let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
+                slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
+                let [fleetState, coords] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
                 if (fleetState === 'Idle') {
                     fleet.workflowOriginalAssignment = fleetParsedData.assignment;
@@ -2647,9 +2647,9 @@
             let fleetParsedData = JSON.parse(fleetSavedData);
             logger.log(4, `Ressuplied : ${fleetSavedData.resupplied} moving : ${fleetSavedData.moving}`)
             if (!fleet.moving) {
-                let fleetAcctInfo = await getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
-                updateFleetMiscStats(fleet, fleetAcctInfo);
-                let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
+                let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
+                slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
+                let [fleetState, coords] = slyModule.getFleetState(fleetAcctInfo, fleet);
                 if (fleetState === 'Idle') {
                     fleet.workflowOriginalAssignment = fleetParsedData.assignment;
                     // Définir le moveType à partir de step.moveMode
@@ -2877,9 +2877,9 @@
 
         // Vérifier les coordonnées réelles
         try {
-            let fleetAcctInfo = await getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
-            updateFleetMiscStats(fleet, fleetAcctInfo);
-            let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
+            let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
+            slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
+            let [fleetState, coords] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
             logger.log(4, 'Real Fleet State:', fleetState);
             logger.log(4, 'Real Coordinates:', coords);
