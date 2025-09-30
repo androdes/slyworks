@@ -991,7 +991,7 @@ var sly = (async function (exports) {
     }
 
     setTimeout(() => {
-        rpc.signatureStatusHandler();
+        rpc.signatureStatusHandler();//
     }, Math.max(2000, globalSettings.confirmationCheckingDelay));
 
 
