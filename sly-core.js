@@ -5873,6 +5873,7 @@ var sly = (async function (exports) {
     exports.operateFleet = operateFleet;
     exports.startCraft = startCraft;
     exports.updateAssistStatus = updateAssistStatus;
+    exports.getAccountInfo = getAccountInfo;
     return exports;
 
 

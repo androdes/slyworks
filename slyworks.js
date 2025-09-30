@@ -2379,7 +2379,7 @@
             extraTime = 20000;
             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Erreur workflow - attente 20s`, error);
             fleet.fontColor = 'crimson';
-            updateAssistStatus(fleet);
+            slyModule.updateAssistStatus(fleet);
         }
 
         // Cycle continu
@@ -2394,9 +2394,9 @@
         if (!fleet.currentWorkflowStep) return false;
 
         try {
-            let fleetAcctInfo = await getAccountInfo(fleet.label, 'vérification workflow', fleet.publicKey);
+            let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'vérification workflow', fleet.publicKey);
             updateFleetMiscStats(fleet, fleetAcctInfo);
-            let [fleetState, extra] = getFleetState(fleetAcctInfo, fleet);
+            let [fleetState, extra] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
             // Vérifier si la flotte est dans un état d'erreur
             if (fleetState.includes('ERROR')) {
