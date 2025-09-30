@@ -2277,7 +2277,7 @@
                 await GM.setValue(label, JSON.stringify(data));
             }
             setTimeout(() => {
-                startCraft(data);
+                slyModule.startCraft(data);
             }, 2000 * (i + 1));
         }
 
@@ -2377,7 +2377,7 @@
             }
         } catch (error) {
             extraTime = 20000;
-            logger.log(1, `${FleetTimeStamp(fleet.label)} Erreur workflow - attente 20s`, error);
+            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Erreur workflow - attente 20s`, error);
             fleet.fontColor = 'crimson';
             updateAssistStatus(fleet);
         }
