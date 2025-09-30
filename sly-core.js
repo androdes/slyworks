@@ -250,25 +250,25 @@ var sly = (async function (exports) {
             result = await origMethod.apply(target, args);
         } catch (error1) {
             solanaErrorCount++;
-            cLog(2, `${proxyType} CONNECTION ERROR: `, error1);
-            cLog(2, `${proxyType} current RPC: ${target._rpcWsEndpoint}`);
+            logger.log(2, `${proxyType} CONNECTION ERROR: `, error1);
+            logger.log(2, `${proxyType} current RPC: ${target._rpcWsEndpoint}`);
             if (isConnectivityError(error1)) {
                 let success = false;
                 let rpcIdx = 0;
                 while (!success && rpcIdx < rpcs.length) {
-                    cLog(2, `${proxyType} trying ${rpcs[rpcIdx]}`);
+                    logger.log(2, `${proxyType} trying ${rpcs[rpcIdx]}`);
                     const newConnection = new solanaWeb3.Connection(rpcs[rpcIdx], 'confirmed');
                     try {
                         result = await origMethod.apply(newConnection, args);
                         success = true;
                     } catch (error2) {
                         solanaErrorCount++;
-                        cLog(2, `${proxyType} INNER ERROR: `, error2);
+                        logger.log(2, `${proxyType} INNER ERROR: `, error2);
                         if (!isConnectivityError(error2)) {
-                            logError('Unrecoverable connection error: ' + error2);
+                            logger.logError('Unrecoverable connection error: ' + error2);
                             return error2;
                         } else {
-                            logError('Recoverable connection error (still trying): ' + error2);
+                            logger.logError('Recoverable connection error (still trying): ' + error2);
                         }
                     }
                     rpcIdx = rpcIdx + 1 < rpcs.length ? rpcIdx + 1 : 0;
@@ -277,7 +277,7 @@ var sly = (async function (exports) {
                     await wait(1000);
                 }
             } else {
-                logError('Unrecoverable connection error: ' + error1);
+                logger.logError('Unrecoverable connection error: ' + error1);
             }
         }
         return result;
@@ -674,13 +674,13 @@ var sly = (async function (exports) {
             mySecretKey: parseStringDefault(globalSettings.mySecretKey, ''),
         }
 
-        cLog(2, 'SYSTEM: Global Settings loaded', globalSettings);
+        logger.log(2, 'SYSTEM: Global Settings loaded', globalSettings);
     }
 
     async function getAllStarbasesForFaction(faction) {
         return new Promise(async resolve => {
 
-            cLog(1, 'Reading faction starbases');
+            logger.log(1, 'Reading faction starbases');
             let starbases = await sageProgram.account.starbase.all([
                 {
                     memcmp: {
@@ -689,11 +689,11 @@ var sly = (async function (exports) {
                     }
                 }
             ]);
-            cLog(1, starbases.length, 'read');
+            logger.log(1, starbases.length, 'read');
 
-            cLog(1, 'Reading all planets');
+            logger.log(1, 'Reading all planets');
             let planets = await sageProgram.account.planet.all([]);
-            cLog(1, planets.length, 'read');
+            logger.log(1, planets.length, 'read');
 
             // first we group all planets of the same sector:
             let planetSectors = [];
@@ -748,7 +748,7 @@ var sly = (async function (exports) {
             });
             validTargets = validMainTargets.concat(validMRZTargets);
 
-            cLog(4, 'validTargets:', validTargets);
+            logger.log(4, 'validTargets:', validTargets);
 
             resolve();
         });
@@ -785,15 +785,13 @@ var sly = (async function (exports) {
     console.log("Load global settings");
     await loadGlobalSettings();
 
-    function cLog(level, ...args) {
-        if (level <= globalSettings.debugLogLevel) console.log(...args);
-    }
+    
 
-    cLog(4, "Load resources");
+    logger.log(4, "Load resources");
     await getResourceTokens();
-    cLog(4, "Load recipes");
+    logger.log(4, "Load recipes");
     await getCraftRecipes();
-    cLog(4, "Load ALTs");
+    logger.log(4, "Load ALTs");
     await getALTs();
 
     let fuelItem = cargoItems.find(item => item.token === sageGameAcct.account.mints.fuel.toString());
@@ -812,7 +810,7 @@ var sly = (async function (exports) {
     let currentFee = globalSettings.priorityFee; //autofee
 
     async function getAccountInfo(fleetName, reason, params) {
-        cLog(3, `${FleetTimeStamp(fleetName)} get ${reason}`);
+        logger.log(3, `${FleetTimeStamp(fleetName)} get ${reason}`);
         return await solanaReadConnection.getAccountInfo(params);
     }
 
@@ -833,8 +831,8 @@ var sly = (async function (exports) {
                 extra = [sector.toSector[0].toNumber(), sector.toSector[1].toNumber()];
                 return [fleetState, extra];
             } else {
-                cLog(1, `${FleetTimeStamp(fleet.label)} Exit warp/subwarp was pending, but no target sector found, resetting pending state`);
-                logError('Exit warp/subwarp was pending, but no target sector found, resetting pending state', fleet.label);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} Exit warp/subwarp was pending, but no target sector found, resetting pending state`);
+                logger.logError('Exit warp/subwarp was pending, but no target sector found, resetting pending state', fleet.label);
                 fleet.exitWarpSubwarpPending = 0;
             }
         }
@@ -938,11 +936,11 @@ var sly = (async function (exports) {
 
     function calcWarpFuelReq(fleet, startCoords, endCoords, warpSubwarp) {
         if (!CoordsValid(startCoords) || !CoordsValid(endCoords)) {
-            cLog(4, `${FleetTimeStamp(fleet.label)} calcWarpFuelReq: Bad coords`, startCoords, endCoords);
+            logger.log(4, `${FleetTimeStamp(fleet.label)} calcWarpFuelReq: Bad coords`, startCoords, endCoords);
             return 0;
         }
         if (CoordsEqual(startCoords, endCoords)) {
-            cLog(4, `${FleetTimeStamp(fleet.label)} calcWarpFuelReq: Same coords`, startCoords, endCoords);
+            logger.log(4, `${FleetTimeStamp(fleet.label)} calcWarpFuelReq: Same coords`, startCoords, endCoords);
             return 0;
         }
 
@@ -966,7 +964,7 @@ var sly = (async function (exports) {
         }
 
 
-        //cLog(4, `${FleetTimeStamp(fleet.label)} calcWarpFuelReq: ${fuelRequired} fuel over ${jumps} jumps`);
+        //logger.log(4, `${FleetTimeStamp(fleet.label)} calcWarpFuelReq: ${fuelRequired} fuel over ${jumps} jumps`);
         return fuelRequired;
     }
 
@@ -1201,7 +1199,7 @@ var sly = (async function (exports) {
         while (cachedEpochInfo.isUpdating && (curTimestamp - cachedEpochInfo.lastUpdated) > cachedValueExpires && loopCounter < 20) {
             await wait(125);
             loopCounter++;
-            if (loopCounter >= 20 && cachedEpochInfo.isUpdating) cLog(1, `${FleetTimeStamp(fleet.label)} Concurrent read of block height took too long, forcing read`);
+            if (loopCounter >= 20 && cachedEpochInfo.isUpdating) logger.log(1, `${FleetTimeStamp(fleet.label)} Concurrent read of block height took too long, forcing read`);
         }
         if ((curTimestamp - cachedEpochInfo.lastUpdated) > cachedValueExpires) {
             // We request the current block height. We use a try/catch block, so if something goes wrong, we can be sure that "isUpdating" is reset
@@ -1211,18 +1209,18 @@ var sly = (async function (exports) {
                 cachedEpochInfo.blockHeight = curBlockHeight;
                 cachedEpochInfo.lastUpdated = Date.now(); // we must use the current time (instead of the previously saved timestamp), because it is possible that several re-reads occured (it would then lead to a block height that's way too high). Also it is possible that the while loop from above took some time.
                 localBlockHeight = curBlockHeight;
-                cLog(3, `${FleetTimeStamp(fleet.label)} using requested block height of`, localBlockHeight);
+                logger.log(3, `${FleetTimeStamp(fleet.label)} using requested block height of`, localBlockHeight);
                 cachedEpochInfo.isUpdating = false;
             } catch (error) {
                 // something went wrong, we reset "isUpdating" and use the cached value
                 localBlockHeight = cachedEpochInfo.blockHeight + Math.round((Date.now() - cachedEpochInfo.lastUpdated) / useBlockTime);
                 cachedEpochInfo.isUpdating = false;
-                cLog(1, `${FleetTimeStamp(fleet.label)} Uncaught error in localGetEpochInfo`, error);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} Uncaught error in localGetEpochInfo`, error);
             }
         } else {
             // We estimate the current block height and use the current timestamp for the calculation, because it is possible that the above while loop took some time. The average block time is 420ms, but just to be sure we use a little more (450ms), so a tx doesn't expire too early.
             localBlockHeight = cachedEpochInfo.blockHeight + Math.round((Date.now() - cachedEpochInfo.lastUpdated) / useBlockTime);
-            cLog(3, `${FleetTimeStamp(fleet.label)} using estimated block height of`, localBlockHeight);
+            logger.log(3, `${FleetTimeStamp(fleet.label)} using estimated block height of`, localBlockHeight);
         }
         return localBlockHeight;
     }
@@ -1241,11 +1239,11 @@ var sly = (async function (exports) {
         if (currentHashes.length > 0) {
 
             const txHashes = currentHashes.map(req => req.txHash);
-            cLog(3, `Requesting`, currentHashes.length, `signature statuses at once`);
+            logger.log(3, `Requesting`, currentHashes.length, `signature statuses at once`);
 
             try {
                 const signatureStatuses = await solanaReadConnection.getSignatureStatuses(txHashes);
-                //cLog(3,`Got signature results:`, signatureStatuses);
+                //logger.log(3,`Got signature results:`, signatureStatuses);
                 for (let i = 0; i < currentHashes.length; i++) {
                     const {resolve} = currentHashes[i];
                     const signatureStatus = {value: signatureStatuses.value[i]};
@@ -1253,7 +1251,7 @@ var sly = (async function (exports) {
                 }
             } catch (error) {
                 // If something goes wrong, we reject each request. If a promise of the queue was already resolved in the "try" block, the reject does (correctly) nothing and won't throw an error
-                logError('Error: Rejecting all signature checks - ' + error);
+                logger.logError('Error: Rejecting all signature checks - ' + error);
                 for (const req of currentHashes) {
                     req.reject(err);
                 }
@@ -1280,20 +1278,20 @@ var sly = (async function (exports) {
                     maxRetries: 0,
                     preflightCommitment: 'confirmed'
                 });
-                cLog(3, `${FleetTimeStamp(fleet.label)} <${opName}>`, (retryCount > 0 ? 'TRYING 🌐 ' : '') + 'txHash', txHash, `/ last valid block`, lastValidBlockHeight, `/ cur block`, curBlockHeight);
+                logger.log(3, `${FleetTimeStamp(fleet.label)} <${opName}>`, (retryCount > 0 ? 'TRYING 🌐 ' : '') + 'txHash', txHash, `/ last valid block`, lastValidBlockHeight, `/ cur block`, curBlockHeight);
                 if (!txHash) return {txHash, confirmation: {name: 'TransactionExpiredBlockheightExceededError'}};
             }
             try {
                 const signatureStatus = await requestSignatureStatus(txHash);
                 if (signatureStatus.value && ['confirmed', 'finalized'].includes(signatureStatus.value.confirmationStatus)) {
-                    cLog(3, `${FleetTimeStamp(fleet.label)} <${opName}> SIGNATURE FOUND ✅`);
+                    logger.log(3, `${FleetTimeStamp(fleet.label)} <${opName}> SIGNATURE FOUND ✅`);
                     return {txHash, confirmation: signatureStatus};
                 } else if (signatureStatus.err) {
-                    cLog(3, `${FleetTimeStamp(fleet.label)} <${opName}> Err`, signatureStatus.err);
+                    logger.log(3, `${FleetTimeStamp(fleet.label)} <${opName}> Err`, signatureStatus.err);
                     return {txHash, confirmation: signatureStatus}
                 }
             } catch (err) {
-                cLog(1, `${FleetTimeStamp(fleet.label)} <${opName}> Signature exception:`, err);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} <${opName}> Signature exception:`, err);
             }
             curBlockHeight = await localGetEpochInfo(fleet); // todo: if for some reason the request of the block height takes a very long time (e.g. 20 seconds) and the block height is near the block limit, it is possible that the loop will exit without doing a final signature check.
             retryCount++;
@@ -1331,7 +1329,7 @@ var sly = (async function (exports) {
                 //const priorityFee = currentFee ? Math.max(1, Math.ceil(priorityFeeMultiplier * currentFee * 5)) : 0;
                 const priorityFee = currentFee ? Math.max(priorityFeeMin, Math.ceil(priorityFeeMultiplier * currentFee * 5)) : 0;
 
-                cLog(4, `${FleetTimeStamp(fleetName)} <${opName}> 💳 Fee ${Math.ceil(priorityFee / 5)} lamp`);
+                logger.log(4, `${FleetTimeStamp(fleetName)} <${opName}> 💳 Fee ${Math.ceil(priorityFee / 5)} lamp`);
 
                 let instructions = [];
                 if (priorityFee > 0) instructions.push(solanaWeb3.ComputeBudgetProgram.setComputeUnitPrice({microLamports: priorityFee}));
@@ -1349,7 +1347,7 @@ var sly = (async function (exports) {
                 let tx = new solanaWeb3.VersionedTransaction(messageV0);
                 if (extraSigner) tx.sign([extraSigner]);
                 let txSigned = null;
-                cLog(4, `${FleetTimeStamp(fleetName)} <${opName}> tx: `, tx);
+                logger.log(4, `${FleetTimeStamp(fleetName)} <${opName}> tx: `, tx);
 
                 const signStart = Date.now();
 
@@ -1364,7 +1362,7 @@ var sly = (async function (exports) {
                     }
                 } catch (error1) {
                     /* Catch the very rare "Could not establish connection. Receiving end does not exist" error from Solflare and just try it again: */
-                    cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> Wallet extension error`, error1);
+                    logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> Wallet extension error`, error1);
                     await wait(1000);
                     if (customKeypair) {
                         tx.sign([customKeypair]);
@@ -1377,15 +1375,15 @@ var sly = (async function (exports) {
                 }
 
                 const signMsTaken = Date.now() - signStart;
-                if (signMsTaken > 2000) cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> WARNING: Signing of tx took`, signMsTaken, `milliseconds`);
+                if (signMsTaken > 2000) logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> WARNING: Signing of tx took`, signMsTaken, `milliseconds`);
                 //document.getElementById('assist-modal-time').innerHTML = 'Last sign time: <span style="color:' + (signMsTaken >= 2000 ? (signMsTaken >= 20000 ? 'Red' : 'Yellow') : 'inherit') + '">' + (signMsTaken / 1000).toFixed(1) + 's</span>';
 
-                cLog(4, `${FleetTimeStamp(fleetName)} <${opName}> txSigned: `, txSigned);
+                logger.log(4, `${FleetTimeStamp(fleetName)} <${opName}> txSigned: `, txSigned);
                 let txSerialized = await txSigned[0].serialize();
-                cLog(4, `${FleetTimeStamp(fleetName)} <${opName}> txSerialized: `, txSerialized);
+                logger.log(4, `${FleetTimeStamp(fleetName)} <${opName}> txSerialized: `, txSerialized);
 
                 let microOpStart = Date.now();
-                cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> SEND ➡️ lastValidBlockHeight: `, latestBH.lastValidBlockHeight);
+                logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> SEND ➡️ lastValidBlockHeight: `, latestBH.lastValidBlockHeight);
                 // Adding a 25 block buffer before considering a transaction expired
                 let response = await sendAndConfirmTx(txSerialized, latestBH.lastValidBlockHeight, null, fleet, opName);
                 let txHash = response.txHash;
@@ -1404,10 +1402,10 @@ var sly = (async function (exports) {
                         globalErrorTracker.errorCount = 1;
                     }
                     updateFleetState(fleet, 'ERROR: Ix Error');
-                    cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> ERROR ❌ The instruction resulted in an error.`);
+                    logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> ERROR ❌ The instruction resulted in an error.`);
                     let ixError = txResult && txResult.meta && txResult.meta.logMessages ? txResult.meta.logMessages : 'Unknown';
-                    cLog(4, FleetTimeStamp(fleetName), ' txResult.logMessages: ', ixError);
-                    logError('ix error: ' + ixError, fleetName);
+                    logger.log(4, FleetTimeStamp(fleetName), ' txResult.logMessages: ', ixError);
+                    logger.logError('ix error: ' + ixError, fleetName);
                     if (fleet.publicKey) {
                         if (globalSettings.emailFleetIxErrors) await sendEMail(fleetName + ' ix error', ixError);
                     } else {
@@ -1418,8 +1416,8 @@ var sly = (async function (exports) {
                 const confirmationTimeStr = `${Date.now() - microOpStart}ms`;
 
                 if (confirmation && confirmation.name == 'TransactionExpiredBlockheightExceededError' && !txResult) {
-                    cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> CONFIRM ❌ ${confirmationTimeStr}`);
-                    cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> RESEND 🔂`);
+                    logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> CONFIRM ❌ ${confirmationTimeStr}`);
+                    logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> RESEND 🔂`);
                     //await alterStats('Txs Resent', opName, (Date.now() - macroOpStart) / 1000, 'Seconds', 1); //statsadd
                     //await alterFees(-1, opName); //autofee
                     continue; //retart loop to try again
@@ -1427,16 +1425,16 @@ var sly = (async function (exports) {
 
                 let tryCount = 1;
                 if (!confirmation.name) {
-                    if (!txResult) cLog(3, `${FleetTimeStamp(fleetName)} <${opName}> Polling transaction until successful`);
+                    if (!txResult) logger.log(3, `${FleetTimeStamp(fleetName)} <${opName}> Polling transaction until successful`);
                     while (!txResult) {
                         tryCount++;
                         if (tryCount >= 130) {
                             // couldn't find the transaction, it is possible a block re-org happened, so try to send the tx again
-                            cLog(1, `${FleetTimeStamp(fleetName)} <${opName}> No transaction found after ${tryCount} tries, possible block re-org, resending the tx`);
+                            logger.log(1, `${FleetTimeStamp(fleetName)} <${opName}> No transaction found after ${tryCount} tries, possible block re-org, resending the tx`);
                             break;
                         }
                         if ((tryCount % 10) == 0) {
-                            cLog(3, `${FleetTimeStamp(fleetName)} <${opName}> Still polling the transaction`);
+                            logger.log(3, `${FleetTimeStamp(fleetName)} <${opName}> Still polling the transaction`);
                         }
                         txResult = await solanaReadConnection.getTransaction(txHash, {
                             commitment: 'confirmed',
@@ -1450,14 +1448,14 @@ var sly = (async function (exports) {
                     }
                 }
 
-                if (tryCount > 1) cLog(3, `${FleetTimeStamp(fleetName)} Got txResult in ${tryCount} tries`, txResult);
-                cLog(4, `${FleetTimeStamp(fleetName)} txResult`, txResult);
-                cLog(2, `${FleetTimeStamp(fleetName)} <${opName}> CONFIRM ✅ ${confirmationTimeStr}`);
+                if (tryCount > 1) logger.log(3, `${FleetTimeStamp(fleetName)} Got txResult in ${tryCount} tries`, txResult);
+                logger.log(4, `${FleetTimeStamp(fleetName)} txResult`, txResult);
+                logger.log(2, `${FleetTimeStamp(fleetName)} <${opName}> CONFIRM ✅ ${confirmationTimeStr}`);
                 confirmed = true;
 
                 const fullMsTaken = Date.now() - macroOpStart;
                 const secondsTaken = Math.round(fullMsTaken / 1000);
-                cLog(1, `${FleetTimeStamp(fleetName)} <${opName}> Completed 🏁 ${secondsTaken}s`);
+                logger.log(1, `${FleetTimeStamp(fleetName)} <${opName}> Completed 🏁 ${secondsTaken}s`);
 
                 //await alterStats('SOL Fees', undefined, txResult.meta.fee * 0.000000001, 'SOL', 7); // undefined name => only totals tracked //statsadd
                 let statGroup = ((confirmation && confirmation.value && confirmation.value.err && confirmation.value.err.InstructionError) || (txResult && txResult.meta && txResult.meta.err && txResult.meta.err.InstructionError)) ? 'Txs IxErrors' : 'Txs Confirmed'; //statsadd
@@ -1493,7 +1491,7 @@ var sly = (async function (exports) {
             }
 
             const coordStr = `[${destX},${destY}]`;
-            cLog(1, `${FleetTimeStamp(fleet.label)} Subwarping to ${coordStr}`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Subwarping to ${coordStr}`);
             updateFleetState(fleet, 'Subwarping');
 
             let txResult = await txSignAndSend(tx, fleet, 'SUBWARP', 10);
@@ -1601,7 +1599,7 @@ var sly = (async function (exports) {
                 ]).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Exiting Subwarp`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Exiting Subwarp`);
             updateFleetState(fleet, 'Exiting Subwarp');
 
             //let txResult = await txSignAndSend(tx, fleet, 'EXIT SUBWARP', 100);
@@ -1612,7 +1610,7 @@ var sly = (async function (exports) {
                 txResult = await txSignAndSend(tx, fleet, 'EXIT SUBWARP', 100);
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Idle 💤`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Idle 💤`);
             updateFleetState(fleet, 'Idle');
 
             resolve(txResult);
@@ -1650,7 +1648,7 @@ var sly = (async function (exports) {
             }
 
             const coordStr = `[${destX},${destY}]`;
-            cLog(1, `${FleetTimeStamp(fleet.label)} Warping to ${coordStr}`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Warping to ${coordStr}`);
             updateFleetState(fleet, 'Warping');
 
             let txResult = await txSignAndSend(tx, fleet, 'WARP', 100);
@@ -1724,7 +1722,7 @@ var sly = (async function (exports) {
                 ]).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Exiting Warp`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Exiting Warp`);
             updateFleetState(fleet, 'Exiting Warp');
 
             //let txResult = await txSignAndSend(tx, fleet, 'EXIT WARP', 10);
@@ -1735,7 +1733,7 @@ var sly = (async function (exports) {
                 txResult = await txSignAndSend(tx, fleet, 'EXIT WARP', 10);
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Idle 💤`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Idle 💤`);
             updateFleetState(fleet, 'Idle');
 
             resolve(txResult);
@@ -1816,7 +1814,7 @@ var sly = (async function (exports) {
                 }).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Docking`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Docking`);
             updateFleetState(fleet, 'Docking');
 
             let txResult;
@@ -1827,7 +1825,7 @@ var sly = (async function (exports) {
             }
             //let txResult = await txSignAndSend(tx, fleet, 'DOCK', 10);
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Docked`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Docked`);
             updateFleetState(fleet, 'Docked');
 
             resolve(txResult);
@@ -1865,7 +1863,7 @@ var sly = (async function (exports) {
                 }]).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Undocking`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Undocking`);
             updateFleetState(fleet, 'Undocking');
 
             let txResult;
@@ -1885,7 +1883,7 @@ var sly = (async function (exports) {
 
     async function execStartupUndock(i, assignment) {
         const fleet = userFleets[i];
-        cLog(1, `${FleetTimeStamp(fleet.label)} Undock ${assignment} Startup`);
+        logger.log(1, `${FleetTimeStamp(fleet.label)} Undock ${assignment} Startup`);
 
         if (assignment == 'Transport' || assignment == 'Mine') {
             const fleetAcctInfo = await solanaReadConnection.getAccountInfo(fleet.publicKey);
@@ -1896,7 +1894,7 @@ var sly = (async function (exports) {
                 await execUndock(fleet, coords);
             }
         }
-        cLog(1, `${FleetTimeStamp(fleet.label)} Undock Startup Complete`);
+        logger.log(1, `${FleetTimeStamp(fleet.label)} Undock Startup Complete`);
     }
 
     async function execCreateCargoPod(fleet, dockCoords) {
@@ -2220,7 +2218,7 @@ var sly = (async function (exports) {
                 }).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Mining Start ...`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Mining Start ...`);
             updateFleetState(fleet, 'Mine Starting')
 
             let txResult = await txSignAndSend(tx, fleet, 'START MINING', 10);
@@ -2270,11 +2268,11 @@ var sly = (async function (exports) {
             await solanaReadConnection.getAccountInfo(fleetAmmoAcct) || await createPDA(fleetAmmoAcct, fleet.ammoBank, sageGameAcct.account.mints.ammo, fleet);
 
             const accInfo = await getAccountInfo(fleet.label, 'fleet resource token', fleetResourceToken);
-            cLog(2, `${FleetTimeStamp(fleet.label)} Mining getAccountInfo result`, accInfo);
+            logger.log(2, `${FleetTimeStamp(fleet.label)} Mining getAccountInfo result`, accInfo);
             if (!accInfo) {
                 const cpda = await createPDA(fleetResourceToken, fleet.cargoHold, resourceToken, fleet);
 
-                cLog(2, `${FleetTimeStamp(fleet.label)} Mining createPDA result`, cpda);
+                logger.log(2, `${FleetTimeStamp(fleet.label)} Mining createPDA result`, cpda);
             }
             let foodCargoTypeAcct = cargoTypes.find(item => item.account.mint.toString() == sageGameAcct.account.mints.food);
             let ammoCargoTypeAcct = cargoTypes.find(item => item.account.mint.toString() == sageGameAcct.account.mints.ammo);
@@ -2420,14 +2418,14 @@ var sly = (async function (exports) {
                 }).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp(fleet.label)} Mining Stop`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Mining Stop`);
             updateFleetState(fleet, 'Mining Stop')
 
             //let txResult = await txSignAndSend(tx2, fleet, 'STOP MINING', 100);
             let txResult = await txSignAndSend([tx1, tx2], fleet, 'STOP MINING', 100);
 
             //await wait(2000);
-            cLog(1, `${FleetTimeStamp(fleet.label)} Idle 💤`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Idle 💤`);
             updateFleetState(fleet, 'Idle');
 
             resolve(txResult);
@@ -2754,7 +2752,7 @@ var sly = (async function (exports) {
                 const bitValue = craftingProcess.inputsChecksum[0] + craftingProcess.inputsChecksum[1] * 256;
                 const ingredientBurned = ((bitValue >> ingredient.idx) & 1) == 0;
                 if (ingredientBurned) {
-                    cLog(1, `${FleetTimeStamp(userCraft.label)} Ingredient`, ingredient.idx, `was already burned, skipping ...`);
+                    logger.log(1, `${FleetTimeStamp(userCraft.label)} Ingredient`, ingredient.idx, `was already burned, skipping ...`);
                     continue;
                 }
 
@@ -2849,7 +2847,7 @@ var sly = (async function (exports) {
                 }
                 transactions.push(tx1);
             } else {
-                cLog(1, `${FleetTimeStamp(userCraft.label)} Output was already claimed, skipping ...`);
+                logger.log(1, `${FleetTimeStamp(userCraft.label)} Output was already claimed, skipping ...`);
             }
 
 
@@ -3122,7 +3120,7 @@ var sly = (async function (exports) {
                 }).instruction()
             }
 
-            cLog(1, `${FleetTimeStamp('CLAIM STAKE')} TESTING ...`);
+            logger.log(1, `${FleetTimeStamp('CLAIM STAKE')} TESTING ...`);
 
             let txResult = await txSignAndSend(tx, {state: 'TESTING', label: 'CLAIM STAKE'}, 'TESTING');
             resolve(txResult);
@@ -3149,7 +3147,7 @@ var sly = (async function (exports) {
         let transaction = null;
         if (currentAmmoCnt < resAmmoMax) {
             amountLoaded = resAmmoMax - currentAmmoCnt;
-            cLog(1, `${FleetTimeStamp(fleet.label)} Loading Ammobanks: ${amountLoaded}`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Loading Ammobanks: ${amountLoaded}`);
             let resp = await execCargoFromStarbaseToFleet(
                 fleet,
                 fleet.ammoBank,
@@ -3262,7 +3260,7 @@ var sly = (async function (exports) {
             let userFleetIndex = userFleets.findIndex(item => {
                 return item.publicKey == fleet.publicKey
             });
-            cLog(1, `${FleetTimeStamp(fleet.label)} Manual request for resetting the fleet state`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Manual request for resetting the fleet state`);
             updateFleetState(fleet, 'ERROR: Trying to restart ...', true); // keep string "ERROR" for now to prevent an early start of operateFleet()
 
             fleet.exitWarpSubwarpPending = 0;
@@ -3433,8 +3431,8 @@ var sly = (async function (exports) {
                 updateAssistStatus(fleet);
             } else {
                 // Pour le nouveau système de workflow, juste loguer
-                cLog(4, `Fleet ${fleet.label}: ${newState}`);
-                cLog(4, fleet);
+                logger.log(4, `Fleet ${fleet.label}: ${newState}`);
+                logger.log(4, fleet);
             }
         }
     }
@@ -3470,7 +3468,7 @@ var sly = (async function (exports) {
             const inputError = (msg, innerHtml, type) => {
                 // type 1: Distance exceeds fuel capacity
                 // type 2: Identical starbase/target sectors
-                cLog(1, msg);
+                logger.log(1, msg);
                 row.children[2].children[0].style.border = '2px solid red';
                 row.children[2].children[1].style.border = '2px solid red';
                 row.children[3].firstChild.style.border = '2px solid red';
@@ -3631,7 +3629,7 @@ var sly = (async function (exports) {
                 craftingCoords: craftingCoords,
                 craftingId: craftingId
             }
-            cLog(4, 'craft: ', craft);
+            logger.log(4, 'craft: ', craft);
 
             await GM.setValue(craftPK, JSON.stringify(craft));
         }
@@ -3646,7 +3644,7 @@ var sly = (async function (exports) {
         let importText = document.querySelector('#importText');
         importText.value = '{';
         let fleetKeys = GM_listValues();
-        //cLog(2, 'assistImportToggle: fleetKeys', fleetKeys);
+        //logger.log(2, 'assistImportToggle: fleetKeys', fleetKeys);
         for (let i in fleetKeys) {
             let fleetSavedData = await GM.getValue(fleetKeys[i], '{}');
             //let fleetParsedData = JSON.parse(fleetSavedData);
@@ -3700,7 +3698,7 @@ var sly = (async function (exports) {
 
         //Guard against clicking the wrong button
         if (importText.value.includes('sector_target')) {
-            cLog(4, 'switching to fleet targets import...');
+            logger.log(4, 'switching to fleet targets import...');
             await saveTargetsImport();
             return;
         }
@@ -3720,7 +3718,7 @@ var sly = (async function (exports) {
 
         //Guard against clicking the wrong button
         if (!importText.value.includes('sector_target')) {
-            cLog(4, 'switching to full fleet import...');
+            logger.log(4, 'switching to full fleet import...');
             await saveConfigImport();
             return;
         }
@@ -3815,7 +3813,7 @@ var sly = (async function (exports) {
 
         if (errBool === false) {
             errElem[0].innerHTML = '';
-            cLog(2, 'SYSTEM: Global Settings saved', globalSettings);
+            logger.log(2, 'SYSTEM: Global Settings saved', globalSettings);
             settingsModalToggle();
         }
     }
@@ -3859,7 +3857,7 @@ var sly = (async function (exports) {
             if (typeof fleetParsedData.assignment == "undefined") continue; //skip crafting jobs and global settings
 
             if (!userFleets.some(item => item.publicKey.toString() === fleetKey)) {
-                cLog(1, `Deleting ${fleetParsedData.name}`);
+                logger.log(1, `Deleting ${fleetParsedData.name}`);
                 GM.deleteValue(fleetKey);
                 removedCounter++;
             }
@@ -3882,7 +3880,7 @@ var sly = (async function (exports) {
         if (fleetState == 'Idle' && extra.length > 1 && moveDist && moveX !== null && moveX !== '' && moveY != null && moveY !== '') {
             if (extra[0] !== moveX || extra[1] !== moveY) {
                 let warpCost = calcWarpFuelReq(userFleets[i], extra, [moveX, moveY], isStarbaseAndWarpSubwarp);
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} warpCost: ${warpCost}`);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} warpCost: ${warpCost}`);
                 let subwarpCost = calculateSubwarpFuelBurn(userFleets[i], moveDist);
                 let fleetCurrentFuelTank = await solanaReadConnection.getParsedTokenAccountsByOwner(userFleets[i].fuelTank, {programId: tokenProgramPK});
                 let currentFuel = fleetCurrentFuelTank.value.find(item => item.account.data.parsed.info.mint === sageGameAcct.account.mints.fuel.toString());
@@ -3937,7 +3935,7 @@ var sly = (async function (exports) {
                     while (Date.now() < warpCooldownExpiresAt) {
                         if (!userFleets[i].state.includes('Warp C/D')) {
                             const warpCDExpireTimeStr = `[${TimeToStr(new Date(warpCooldownExpiresAt))}]`;
-                            cLog(1, `${FleetTimeStamp(userFleets[i].label)} Awaiting Warp C/D ${warpCDExpireTimeStr}`);
+                            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Awaiting Warp C/D ${warpCDExpireTimeStr}`);
                             updateFleetState(userFleets[i], `Warp C/D ${warpCDExpireTimeStr}`);
                         }
 
@@ -3961,7 +3959,7 @@ var sly = (async function (exports) {
                         //const fleetPK = userFleets[i].publicKey.toString();
                         //const fleetSavedData = await GM.getValue(fleetPK, '{}');
                         //const fleetParsedData = JSON.parse(fleetSavedData);
-                        //cLog(3, `${FleetTimeStamp(userFleets[i].label)} moveTargets`, fleetParsedData.moveTarget, userFleets[i].moveTarget);
+                        //logger.log(3, `${FleetTimeStamp(userFleets[i].label)} moveTargets`, fleetParsedData.moveTarget, userFleets[i].moveTarget);
                         fleetParsedData.moveTarget = userFleets[i].moveTarget;
                         await GM.setValue(fleetPK, JSON.stringify(fleetParsedData));
 
@@ -3984,7 +3982,7 @@ var sly = (async function (exports) {
                     await sendToInflux(`movement,fleet=${influxEscape(userFleets[i].label)},fromX=${extra[0]},fromY=${extra[1]},toX=${moveX},toY=${moveY},assignment=${assignment} type="subwarp",burnedFuel=${moveDist * (userFleets[i].subwarpFuelConsumptionRate / 100)},moveTime=${moveTime},moveDist=${moveDist}`);
                     if (userFleets[i].scanLastFuelAmount) userFleets[i].scanLastFuelAmount -= moveDist * (userFleets[i].subwarpFuelConsumptionRate / 100);
                 } else {
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Unable to move, lack of fuel`);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Unable to move, lack of fuel`);
                     updateFleetState(userFleets[i], 'ERROR: Not enough fuel');
                     if (globalSettings.emailNotEnoughFFA) await sendEMail(userFleets[i].label + ' not enough fuel', '');
                 }
@@ -3999,8 +3997,8 @@ var sly = (async function (exports) {
         let endTime = warpFinish > subwarpFinish ? warpFinish : subwarpFinish;
 
         const calcEndTime = Date.now() + moveTime * 1000;
-        cLog(3, `${FleetTimeStamp(userFleets[i].label)} Expected arrival (chain): ${TimeToStr(new Date(endTime))}`);
-        cLog(3, `${FleetTimeStamp(userFleets[i].label)} Expected arrival (calc): ${TimeToStr(new Date(calcEndTime))}`);
+        logger.log(3, `${FleetTimeStamp(userFleets[i].label)} Expected arrival (chain): ${TimeToStr(new Date(endTime))}`);
+        logger.log(3, `${FleetTimeStamp(userFleets[i].label)} Expected arrival (calc): ${TimeToStr(new Date(calcEndTime))}`);
 
         //Sometimes the chain returns null, use calculated time as fallback
         if (!endTime) endTime = calcEndTime;
@@ -4068,7 +4066,7 @@ var sly = (async function (exports) {
         if (!globalSettings.influxURL.length) return;
         let message = '';
         try {
-            cLog(2, 'Sending message to influx:', msg);
+            logger.log(2, 'Sending message to influx:', msg);
             const response = await fetch(globalSettings.influxURL, {
                 method: "POST",
                 body: msg,
@@ -4084,7 +4082,7 @@ var sly = (async function (exports) {
         } catch (error) {
             message = 'Error while sending a request to influx: ' + error.message;
         }
-        cLog(2, message);
+        logger.log(2, message);
     }
 
 
@@ -4112,7 +4110,7 @@ var sly = (async function (exports) {
             systemRichness = sageResource.account.systemRichness;
         } else {
             let resShort = cargoItems.find(r => r.token == userFleets[i].mineResource).name;
-            cLog(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: ${resShort} not found at mining location`);
+            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: ${resShort} not found at mining location`);
             updateFleetState(userFleets[i], `ERROR: ${resShort} not found at mining location`);
             return;
         }
@@ -4184,7 +4182,7 @@ var sly = (async function (exports) {
         let distToTarget = calculateMovementDistance(fleetCoords, [destX, destY]);
         let distReturn = calculateMovementDistance([destX, destY], [starbaseX, starbaseY]);
 
-        cLog(4, `${FleetTimeStamp(userFleets[i].label)} handleMining -> fleet:`, fleetCoords, `starbase:`, [starbaseX, starbaseY], `target:`, [destX, destY]);
+        logger.log(4, `${FleetTimeStamp(userFleets[i].label)} handleMining -> fleet:`, fleetCoords, `starbase:`, [starbaseX, starbaseY], `target:`, [destX, destY]);
 
         let isStarbaseAndWarpSubwarp = (userFleets[i].moveType == 'warpsubwarp' && ((fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) || (fleetCoords[0] == destX && fleetCoords[1] == destY)));
         let isSourceStarbaseAndWarpSubwarp = (userFleets[i].moveType == 'warpsubwarp' && (fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY));
@@ -4206,12 +4204,12 @@ var sly = (async function (exports) {
                 if (moveDist > 0) {
                     let warpCooldownFinished = await handleMovement(i, moveDist, targetX, targetY, isStarbaseAndWarpSubwarp);
                 } else {
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Idle 💤`);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Idle 💤`);
                     updateFleetState(userFleets[i], 'Idle');
                 }
             } else {
                 const msg = 'ERROR: Fleet must start at Target or Starbase';
-                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Mining - ${msg}`);
+                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Mining - ${msg}`);
                 updateFleetState(userFleets[i], msg);
             }
         }
@@ -4225,16 +4223,16 @@ var sly = (async function (exports) {
 
             //Hard-coded 60 second duration check: no point resuming mining if it'll take less than 1 minute to finish
             if (miningDuration < 60) {
-                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Supplies low, only ${miningDuration} seconds left`);
+                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Supplies low, only ${miningDuration} seconds left`);
                 needSupplies = true;
             } else if (currentFuelCnt < fuelNeeded || currentAmmoCnt < ammoForDuration || currentFoodCnt < foodForDuration) {
                 needSupplies = true;
             }
-            cLog(4, `currentFoodCnt < foodForDuration ${currentFoodCnt}<${currentFoodCnt}`);
+            logger.log(4, `currentFoodCnt < foodForDuration ${currentFoodCnt}<${currentFoodCnt}`);
 
             //sometimes the RPC didn't catch up when we send the combined resupply tx - even after the loop wait time of 10 seconds. So we try to wait another 15+10 seconds if we think that's happening
             if (needSupplies && userFleets[i].justResupplied) {
-                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Fleet just resupplied, but it is trying to resupply again. RPC sync problems? We wait some time to be sure`);
+                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Fleet just resupplied, but it is trying to resupply again. RPC sync problems? We wait some time to be sure`);
                 updateFleetState(userFleets[i], 'Waiting ...');
                 await wait(15000);
                 updateFleetState(userFleets[i], 'Idle');
@@ -4244,10 +4242,10 @@ var sly = (async function (exports) {
             userFleets[i].justResupplied = false;
 
             let minerSupplySingleTx = globalSettings.minerSupplySingleTx;
-            cLog(4, `Needs ressuply ${needSupplies} singletx : ${minerSupplySingleTx}`);
+            logger.log(4, `Needs ressuply ${needSupplies} singletx : ${minerSupplySingleTx}`);
             //Needs Resupply?
             if (needSupplies) {
-                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Need resupply`);
+                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Need resupply`);
 
                 //Recalulate requirements based on total cargo cap
                 miningDuration = calculateMiningDuration(userFleets[i].cargoCapacity, userFleets[i].miningRate, resourceHardness, systemRichness);
@@ -4255,11 +4253,11 @@ var sly = (async function (exports) {
                 ammoForDuration = Math.ceil(miningDuration * (userFleets[i].ammoConsumptionRate / 10000));
                 ammoForDuration = Math.min(userFleets[i].ammoCapacity, ammoForDuration);
 
-                cLog(2, `${FleetTimeStamp(userFleets[i].label)} Calculated miningDuration: ${miningDuration}`);
-                cLog(2, `${FleetTimeStamp(userFleets[i].label)} fuel: ${currentFuelCnt}/${fuelNeeded}`);
-                cLog(2, `${FleetTimeStamp(userFleets[i].label)} ammo: ${currentAmmoCnt}/${ammoForDuration}`);
-                //cLog(2, `${FleetTimeStamp(userFleets[i].label)} ammoForDuration: ${ammoForDuration} = miningDuration ${miningDuration} * (ammoConsumptionRate ${userFleets[i].ammoConsumptionRate} / 10000)`);
-                cLog(2, `${FleetTimeStamp(userFleets[i].label)} food: ${currentFoodCnt}/${foodForDuration}`);
+                logger.log(2, `${FleetTimeStamp(userFleets[i].label)} Calculated miningDuration: ${miningDuration}`);
+                logger.log(2, `${FleetTimeStamp(userFleets[i].label)} fuel: ${currentFuelCnt}/${fuelNeeded}`);
+                logger.log(2, `${FleetTimeStamp(userFleets[i].label)} ammo: ${currentAmmoCnt}/${ammoForDuration}`);
+                //logger.log(2, `${FleetTimeStamp(userFleets[i].label)} ammoForDuration: ${ammoForDuration} = miningDuration ${miningDuration} * (ammoConsumptionRate ${userFleets[i].ammoConsumptionRate} / 10000)`);
+                logger.log(2, `${FleetTimeStamp(userFleets[i].label)} food: ${currentFoodCnt}/${foodForDuration}`);
 
                 if (fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) {
                     let transactions = [];
@@ -4268,7 +4266,7 @@ var sly = (async function (exports) {
                         transactions.push(resp);
                     }
                     //await execDock(userFleets[i], userFleets[i].starbaseCoord);
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Unloading resource`);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Unloading resource`);
                     updateFleetState(userFleets[i], `Unloading`);
 
                     let unloadAmount = 0;
@@ -4306,54 +4304,54 @@ var sly = (async function (exports) {
 
                     //if (currentFuelCnt < userFleets[i].fuelCapacity) {
                     if (currentFuelCnt < fuelNeeded) {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Loading fuel`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Loading fuel`);
                         updateFleetState(userFleets[i], `Loading`);
                         let fuelCargoTypeAcct = cargoTypes.find(item => item.account.mint.toString() == sageGameAcct.account.mints.fuel);
                         let fuelResp = await execCargoFromStarbaseToFleet(userFleets[i], userFleets[i].fuelTank, fleetFuelAcct, sageGameAcct.account.mints.fuel.toString(), fuelCargoTypeAcct, userFleets[i].starbaseCoord, userFleets[i].fuelCapacity - currentFuelCnt, globalSettings.fleetForceConsumableAmount, minerSupplySingleTx);
                         if (fuelResp && fuelResp.name == 'NotEnoughResource') {
-                            cLog(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Not enough fuel`);
+                            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Not enough fuel`);
                             errorResource.push('fuel');
                         } else if (minerSupplySingleTx && fuelResp.tx) {
                             transactions.push(fuelResp.tx);
                         }
                         //await wait(2000);
                     } else {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Fuel loading skipped: ${currentFuelCnt} / ${fuelNeeded}`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Fuel loading skipped: ${currentFuelCnt} / ${fuelNeeded}`);
                     }
 
                     if (currentAmmoCnt < ammoForDuration) {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Loading ammo`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Loading ammo`);
                         updateFleetState(userFleets[i], `Loading`);
                         let ammoCargoTypeAcct = cargoTypes.find(item => item.account.mint.toString() == sageGameAcct.account.mints.ammo);
                         let ammoResp = await execCargoFromStarbaseToFleet(userFleets[i], userFleets[i].ammoBank, fleetAmmoAcct, sageGameAcct.account.mints.ammo.toString(), ammoCargoTypeAcct, userFleets[i].starbaseCoord, userFleets[i].ammoCapacity - currentAmmoCnt, globalSettings.fleetForceConsumableAmount, minerSupplySingleTx);
                         if (ammoResp && ammoResp.name == 'NotEnoughResource') {
-                            cLog(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Not enough ammo`);
+                            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Not enough ammo`);
                             errorResource.push('ammo');
                         } else if (minerSupplySingleTx && ammoResp.tx) {
                             transactions.push(ammoResp.tx);
                         }
                         //await wait(2000);
                     } else {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Ammo loading skipped: ${currentAmmoCnt} / ${ammoForDuration}`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Ammo loading skipped: ${currentAmmoCnt} / ${ammoForDuration}`);
                     }
 
 
                     miningDuration = calculateMiningDuration(userFleets[i].cargoCapacity - cargoCnt + unloadAmount + currentFoodCnt, userFleets[i].miningRate, resourceHardness, systemRichness);
                     foodForDuration = Math.ceil(miningDuration * (userFleets[i].foodConsumptionRate / 10000)) + (globalSettings.minerKeep1 ? 1 : 0);
                     if (currentFoodCnt < foodForDuration) {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Loading food`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Loading food`);
                         updateFleetState(userFleets[i], `Loading`);
                         let foodCargoTypeAcct = cargoTypes.find(item => item.account.mint.toString() == sageGameAcct.account.mints.food);
                         let foodResp = await execCargoFromStarbaseToFleet(userFleets[i], userFleets[i].cargoHold, fleetFoodAcct, sageGameAcct.account.mints.food.toString(), foodCargoTypeAcct, userFleets[i].starbaseCoord, foodForDuration - currentFoodCnt, globalSettings.fleetForceConsumableAmount, minerSupplySingleTx);
                         if (foodResp && foodResp.name == 'NotEnoughResource') {
-                            cLog(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Not enough food`);
+                            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Not enough food`);
                             errorResource.push('food');
                         } else if (minerSupplySingleTx && foodResp.tx) {
                             transactions.push(foodResp.tx);
                         }
                         //await wait(2000);
                     } else {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Food loading skipped: ${currentFoodCnt} / ${foodForDuration}`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Food loading skipped: ${currentFoodCnt} / ${foodForDuration}`);
                     }
 
                     updateFleetState(userFleets[i], `Loading`);
@@ -4367,7 +4365,7 @@ var sly = (async function (exports) {
                         if (minerSupplySingleTx && resp) {
                             updateFleetState(userFleets[i], `Executing resupply tx`);
                             transactions.push(resp);
-                            //cLog(4, transactions);
+                            //logger.log(4, transactions);
                             await txSliceAndSend(transactions, userFleets[i], 'RESUPPLY', 100, 6);
                             updateFleetState(userFleets[i], 'Idle');
                         }
@@ -4400,7 +4398,7 @@ var sly = (async function (exports) {
                 //Fetch update mining state from chain
                 const fleetAcctInfo = await getAccountInfo(userFleets[i].label, 'full fleet info', userFleets[i].publicKey);
                 const [fleetState, extra] = getFleetState(fleetAcctInfo, userFleets[i]);
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} chain fleet state: ${fleetState}`);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} chain fleet state: ${fleetState}`);
                 fleetMining = fleetState == 'MineAsteroid' ? extra : null;
             }
 
@@ -4486,7 +4484,7 @@ var sly = (async function (exports) {
                     }
                     if (amountToUnload > 0) {
                         needToUnload = true;
-                        cLog(3, `${FleetTimeStamp(fleet.label)} Found rss that is not part of any transport manifest, unloading`, amountToUnload, 'of', currentRes.account.data.parsed.info.mint);
+                        logger.log(3, `${FleetTimeStamp(fleet.label)} Found rss that is not part of any transport manifest, unloading`, amountToUnload, 'of', currentRes.account.data.parsed.info.mint);
                         currentManifest.push({res: currentRes.account.data.parsed.info.mint, amt: amountToUnload});
                     }
                 }
@@ -4557,7 +4555,7 @@ var sly = (async function (exports) {
                     }
                     if (amountToUnload > 0) {
                         needToUnload = true;
-                        cLog(3, `${FleetTimeStamp(fleet.label)} Found rss that is not part of any transport manifest, unloading`, amountToUnload, 'of', currentRes.account.data.parsed.info.mint);
+                        logger.log(3, `${FleetTimeStamp(fleet.label)} Found rss that is not part of any transport manifest, unloading`, amountToUnload, 'of', currentRes.account.data.parsed.info.mint);
                         unloadCargo.push({res: currentRes.account.data.parsed.info.mint, amt: amountToUnload});
                         // Pour projectedCargo, on ne garde pas ces ressources (ou garde 1 si keep1)
                         let projectedAmt = globalSettings.transportKeep1 ? 1 : 0;
@@ -4611,7 +4609,7 @@ var sly = (async function (exports) {
                     isWritable: false
                 }]).instruction()
             }
-            cLog(1, `${FleetTimeStamp(fleet.label)} Unloading crew`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Unloading crew`);
             updateFleetState(fleet, 'Unloading crew');
             //let txResult = await txSignAndSend(txUnload, fleet, 'UNLOAD CREW', 100);
 
@@ -4637,7 +4635,7 @@ var sly = (async function (exports) {
 
             let starbasePlayerInfo = await sageProgram.account.starbasePlayer.fetch(starbasePlayer);
             let availableCrew = starbasePlayerInfo.totalCrew - starbasePlayerInfo.busyCrew.toNumber();
-            cLog(3, `${FleetTimeStamp(fleet.label)} Available crew at starbase:`, availableCrew);
+            logger.log(3, `${FleetTimeStamp(fleet.label)} Available crew at starbase:`, availableCrew);
             if (availableCrew < amount) amount = availableCrew;
 
             let txResult;
@@ -4667,7 +4665,7 @@ var sly = (async function (exports) {
                         isWritable: false
                     }]).instruction()
                 }
-                cLog(1, `${FleetTimeStamp(fleet.label)} Loading crew`);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} Loading crew`);
                 updateFleetState(fleet, 'Loading crew');
                 //txResult = await txSignAndSend(txLoad, fleet, 'LOAD CREW', 100);
                 if (returnTx) {
@@ -4684,7 +4682,7 @@ var sly = (async function (exports) {
     async function handleTransport(i, fleetState, fleetCoords) {
         const [destX, destY] = ConvertCoords(userFleets[i].destCoord);
         const [starbaseX, starbaseY] = ConvertCoords(userFleets[i].starbaseCoord);
-        cLog(4, `Dest ${userFleets[i].destCoord} SB ${userFleets[i].starbaseCoord} fleetCoords ${fleetCoords} fleetState ${fleetState}`);
+        logger.log(4, `Dest ${userFleets[i].destCoord} SB ${userFleets[i].starbaseCoord} fleetCoords ${fleetCoords} fleetState ${fleetState}`);
 
         const fleetParsedData = JSON.parse(await GM.getValue(userFleets[i].publicKey.toString(), '{}'));
         let targetCargoManifest = [
@@ -4714,7 +4712,7 @@ var sly = (async function (exports) {
         if (fleetState === 'Idle') {
             // Fleet at starbase?
             if (fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) {
-                cLog(4, "Is at SB");
+                logger.log(4, "Is at SB");
                 userFleets[i].resupplying = true;
 
                 let checkCargoResult = await checkCargo(starbaseCargoManifest, targetCargoManifest, userFleets[i]);
@@ -4729,7 +4727,7 @@ var sly = (async function (exports) {
                 if ((targetCargoManifest[0].crew > 0) && (userFleets[i].passengerCapacity > 0) && ((userFleets[i].requiredCrew + userFleets[i].passengerCapacity - userFleets[i].crewCount - needToUnloadCrew) > 0)) {
                     needToLoadCrew = Math.min(userFleets[i].requiredCrew + userFleets[i].passengerCapacity - userFleets[i].crewCount, targetCargoManifest[0].crew);
                 }
-                if (starbaseCargoManifest[0].crew > 0 || targetCargoManifest[0].crew > 0) cLog(4, `${FleetTimeStamp(userFleets[i].label)} crew:`, userFleets[i].crewCount, 'passengerCapacity:', userFleets[i].passengerCapacity, 'required crew:', userFleets[i].requiredCrew, 'load:', needToLoadCrew, 'unload:', needToUnloadCrew);
+                if (starbaseCargoManifest[0].crew > 0 || targetCargoManifest[0].crew > 0) logger.log(4, `${FleetTimeStamp(userFleets[i].label)} crew:`, userFleets[i].crewCount, 'passengerCapacity:', userFleets[i].passengerCapacity, 'required crew:', userFleets[i].requiredCrew, 'load:', needToLoadCrew, 'unload:', needToUnloadCrew);
 
                 const fuelData = await getFleetFuelData(userFleets[i], [starbaseX, starbaseY], [destX, destY], false);
                 //previously we only checked for "fuelData.fuelNeeded > 0" below, but fuelNeeded is always greater than 0 - it is just the fuel needed for the warp/subwarp.
@@ -4741,7 +4739,7 @@ var sly = (async function (exports) {
                 // Check for "Fuel to 100% for transporters" (roundTrip only = source starbase)
                 if (fuelToAdd > 0 && globalSettings.transportFuel100 && fuelToAdd < fuelData.capacity - fuelData.amount) fuelToAdd = fuelData.capacity - fuelData.amount;
 
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} Fuel needed`, fuelData.fuelNeeded, '/ fuel found', fuelData.amount, '/ fuel to add', fuelToAdd, '/ needToLoad', checkCargoResult.needToLoad, '/ needToUnload', checkCargoResult.needToUnload, '/ needToLoadCrew', needToLoadCrew, '/ needToUnloadCrew', needToUnloadCrew);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Fuel needed`, fuelData.fuelNeeded, '/ fuel found', fuelData.amount, '/ fuel to add', fuelToAdd, '/ needToLoad', checkCargoResult.needToLoad, '/ needToUnload', checkCargoResult.needToUnload, '/ needToLoadCrew', needToLoadCrew, '/ needToUnloadCrew', needToUnloadCrew);
 
                 //if (checkCargoResult.needToLoad || checkCargoResult.needToUnload || fuelData.fuelNeeded > 0 || needToLoadCrew || needToUnloadCrew) {
                 if (checkCargoResult.needToLoad || checkCargoResult.needToUnload || fuelToAdd > 0 || needToLoadCrew > 0 || needToUnloadCrew > 0) {
@@ -4765,11 +4763,11 @@ var sly = (async function (exports) {
                         let crewResp = await handleCrewLoading(userFleets[i], userFleets[i].starbaseCoord, needToLoadCrew, transportLoadUnloadSingleTx);
                         if (crewResp && crewResp.name == 'NotEnoughCrew') {
                             if (globalSettings.transportStopOnError) {
-                                cLog(4, `${FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Not enough crew`);
+                                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Not enough crew`);
                                 updateFleetState(userFleets[i], 'ERROR: Not enough crew');
                                 return;
                             } else {
-                                cLog(4, `${FleetTimeStamp(userFleets[i].label)} Not enough crew`);
+                                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Not enough crew`);
                             }
                         } else if (transportLoadUnloadSingleTx && crewResp) {
                             transactions.push(crewResp);
@@ -4790,7 +4788,7 @@ var sly = (async function (exports) {
                     }
                         */
                         }
-                    } else cLog(4, `${FleetTimeStamp(userFleets[i].label)} Unloading skipped - No resources specified`);
+                    } else logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Unloading skipped - No resources specified`);
 
                     //Refueling at Starbase
                     let refuelResp = await handleTransportRefueling(userFleets[i], userFleets[i].starbaseCoord, [starbaseX, starbaseY], [destX, destY], true, 0, targetCargoManifest, transportLoadUnloadSingleTx);
@@ -4811,17 +4809,17 @@ var sly = (async function (exports) {
                     //Loading at Starbase
                     if (hasTargetManifest) {
                         const loadedCargo = await handleTransportLoading(i, userFleets[i].starbaseCoord, targetCargoManifest, transportLoadUnloadSingleTx, transportLoadUnloadSingleTx ? unloadedAmountInTransaction : 0);
-                        cLog(4, `${FleetTimeStamp(userFleets[i].label)} loadedCargo: `, loadedCargo.success);
+                        logger.log(4, `${FleetTimeStamp(userFleets[i].label)} loadedCargo: `, loadedCargo.success);
                         if (!loadedCargo.success && globalSettings.transportStopOnError) {
                             //const newFleetState = `ERROR: No more cargo to load`;
-                            //cLog(1,`${FleetTimeStamp(userFleets[i].label)} ${newFleetState}`);
+                            //logger.log(1,`${FleetTimeStamp(userFleets[i].label)} ${newFleetState}`);
                             //userFleets[i].state = newFleetState;
-                            cLog(4, `${FleetTimeStamp(userFleets[i].label)} ERROR: Unexpected error on cargo load.`);
+                            logger.log(4, `${FleetTimeStamp(userFleets[i].label)} ERROR: Unexpected error on cargo load.`);
                             return;
                         } else if (transportLoadUnloadSingleTx) {
                             transactions = transactions.concat(loadedCargo.transactions);
                         }
-                    } else cLog(4, `${FleetTimeStamp(userFleets[i].label)} Loading skipped - No resources specified`);
+                    } else logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Loading skipped - No resources specified`);
 
                     let undockResult = await execUndock(userFleets[i], userFleets[i].starbaseCoord, transportLoadUnloadSingleTx);
                     if (transportLoadUnloadSingleTx) {
@@ -4831,17 +4829,17 @@ var sly = (async function (exports) {
                         updateFleetState(userFleets[i], 'Idle');
                         userFleets[i].ressuplied = true;
                     }
-                    //cLog(4,`${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, undockResult);
+                    //logger.log(4,`${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, undockResult);
                     let fleetState = await solanaReadConnection.getAccountInfoAndContext(userFleets[i].publicKey, {minContextSlot: undockResult.slot});
                 }
                 userFleets[i].moveTarget = userFleets[i].destCoord;
                 userFleets[i].resupplying = false;
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, userFleets[i]);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, userFleets[i]);
             }
 
             // Fleet at target?
             else if (fleetCoords[0] == destX && fleetCoords[1] == destY) {
-                cLog(4, "Is at TARGET");
+                logger.log(4, "Is at TARGET");
                 userFleets[i].resupplying = true;
 
                 let checkCargoResult = await checkCargo(targetCargoManifest, starbaseCargoManifest, userFleets[i]);
@@ -4856,7 +4854,7 @@ var sly = (async function (exports) {
                 if ((starbaseCargoManifest[0].crew > 0) && (userFleets[i].passengerCapacity > 0) && ((userFleets[i].requiredCrew + userFleets[i].passengerCapacity - userFleets[i].crewCount - needToUnloadCrew) > 0)) {
                     needToLoadCrew = Math.min(userFleets[i].requiredCrew + userFleets[i].passengerCapacity - userFleets[i].crewCount, starbaseCargoManifest[0].crew);
                 }
-                if (starbaseCargoManifest[0].crew > 0 || targetCargoManifest[0].crew > 0) cLog(4, `${FleetTimeStamp(userFleets[i].label)} crew:`, userFleets[i].crewCount, 'passengerCapacity:', userFleets[i].passengerCapacity, 'required crew:', userFleets[i].requiredCrew, 'load:', needToLoadCrew, 'unload:', needToUnloadCrew);
+                if (starbaseCargoManifest[0].crew > 0 || targetCargoManifest[0].crew > 0) logger.log(4, `${FleetTimeStamp(userFleets[i].label)} crew:`, userFleets[i].crewCount, 'passengerCapacity:', userFleets[i].passengerCapacity, 'required crew:', userFleets[i].requiredCrew, 'load:', needToLoadCrew, 'unload:', needToUnloadCrew);
 
                 const fuelData = await getFleetFuelData(userFleets[i], [destX, destY], [starbaseX, starbaseY], false);
                 //previously we only checked for "fuelData.fuelNeeded > 0" below, but fuelNeeded is always greater than 0 - it is just the fuel needed for the warp/subwarp.
@@ -4865,7 +4863,7 @@ var sly = (async function (exports) {
                 const totalFuel = fuelData.fuelNeeded + fuelEntry.amt;
                 let fuelToAdd = Math.min(fuelData.capacity, totalFuel) - fuelData.amount;
 
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} Fuel needed`, fuelData.fuelNeeded, '/ fuel found', fuelData.amount, '/ fuel to add', fuelToAdd, '/ needToLoad', checkCargoResult.needToLoad, '/ needToUnload', checkCargoResult.needToUnload, '/ needToLoadCrew', needToLoadCrew, '/ needToUnloadCrew', needToUnloadCrew);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Fuel needed`, fuelData.fuelNeeded, '/ fuel found', fuelData.amount, '/ fuel to add', fuelToAdd, '/ needToLoad', checkCargoResult.needToLoad, '/ needToUnload', checkCargoResult.needToUnload, '/ needToLoadCrew', needToLoadCrew, '/ needToUnloadCrew', needToUnloadCrew);
 
                 if (checkCargoResult.needToLoad || checkCargoResult.needToUnload || fuelToAdd > 0 || needToLoadCrew > 0 || needToUnloadCrew > 0) {
                     //await execDock(userFleets[i], userFleets[i].destCoord);
@@ -4888,11 +4886,11 @@ var sly = (async function (exports) {
                         let crewResp = await handleCrewLoading(userFleets[i], userFleets[i].destCoord, needToLoadCrew, transportLoadUnloadSingleTx);
                         if (crewResp && crewResp.name == 'NotEnoughCrew') {
                             if (globalSettings.transportStopOnError) {
-                                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Not enough crew`);
+                                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Not enough crew`);
                                 updateFleetState(userFleets[i], 'ERROR: Not enough crew');
                                 return;
                             } else {
-                                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Not enough crew`);
+                                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Not enough crew`);
                             }
                         } else if (transportLoadUnloadSingleTx && crewResp) {
                             transactions.push(crewResp);
@@ -4916,7 +4914,7 @@ var sly = (async function (exports) {
                     }
                         */
                         }
-                    } else cLog(1, `${FleetTimeStamp(userFleets[i].label)} Unloading skipped - No resources specified`);
+                    } else logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Unloading skipped - No resources specified`);
 
                     //Refueling at Target
                     let refuelResp = await handleTransportRefueling(userFleets[i], userFleets[i].destCoord, [destX, destY], [starbaseX, starbaseY], false, fuelUnloadDeficit, starbaseCargoManifest, transportLoadUnloadSingleTx);
@@ -4935,17 +4933,17 @@ var sly = (async function (exports) {
                     //Loading at Target
                     if (hasStarbaseManifest) {
                         const loadedCargo = await handleTransportLoading(i, userFleets[i].destCoord, starbaseCargoManifest, transportLoadUnloadSingleTx, transportLoadUnloadSingleTx ? unloadedAmountInTransaction : 0);
-                        cLog(4, `${FleetTimeStamp(userFleets[i].label)} loadedCargo: `, loadedCargo.success);
+                        logger.log(4, `${FleetTimeStamp(userFleets[i].label)} loadedCargo: `, loadedCargo.success);
                         if (!loadedCargo.success && globalSettings.transportStopOnError) {
                             //const newFleetState = `ERROR: No more cargo to load`;
-                            //cLog(1,`${FleetTimeStamp(userFleets[i].label)} ${newFleetState}`);
+                            //logger.log(1,`${FleetTimeStamp(userFleets[i].label)} ${newFleetState}`);
                             //userFleets[i].state = newFleetState;
-                            cLog(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Unexpected error on cargo load.`);
+                            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} ERROR: Unexpected error on cargo load.`);
                             return;
                         } else if (transportLoadUnloadSingleTx) {
                             transactions = transactions.concat(loadedCargo.transactions);
                         }
-                    } else cLog(1, `${FleetTimeStamp(userFleets[i].label)} Loading skipped - No resources specified`);
+                    } else logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Loading skipped - No resources specified`);
 
                     let undockResult = await execUndock(userFleets[i], userFleets[i].destCoord, transportLoadUnloadSingleTx);
                     if (transportLoadUnloadSingleTx) {
@@ -4954,12 +4952,12 @@ var sly = (async function (exports) {
                         undockResult = await txSliceAndSend(transactions, userFleets[i], 'LOAD/UNLOAD', 100, 5);
                         updateFleetState(userFleets[i], 'Idle');
                     }
-                    //cLog(4,`${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, undockResult);
+                    //logger.log(4,`${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, undockResult);
                     let fleetState = await solanaReadConnection.getAccountInfoAndContext(userFleets[i].publicKey, {minContextSlot: undockResult.slot});
                 }
                 userFleets[i].moveTarget = userFleets[i].starbaseCoord;
                 userFleets[i].resupplying = false;
-                cLog(3, `${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, userFleets[i]);
+                logger.log(3, `${FleetTimeStamp(userFleets[i].label)} userFleets[i]: `, userFleets[i]);
             }
 
             if (userFleets[i].stopping) return;
@@ -4971,7 +4969,7 @@ var sly = (async function (exports) {
                 let isStarbaseAndWarpSubwarp = userFleets[i].moveType == 'warpsubwarp' && ((fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) || (fleetCoords[0] == destX && fleetCoords[1] == destY));
                 await handleMovement(i, moveDist, targetX, targetY, isStarbaseAndWarpSubwarp);
             } else {
-                cLog(1, `${FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Fleet must start at Target or Starbase`);
+                logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Fleet must start at Target or Starbase`);
                 updateFleetState(userFleets[i], 'ERROR: Fleet must start at Target or Starbase');
             }
         }
@@ -4980,12 +4978,12 @@ var sly = (async function (exports) {
 
     async function handleSupply(i, fleetState, fleetCoords) {
         const fleet = userFleets[i];
-        cLog(4, `moveType: ${fleet.moveType}`);
+        logger.log(4, `moveType: ${fleet.moveType}`);
         const [destX, destY] = ConvertCoords(fleet.destCoord);
         const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
 
         const fleetParsedData = JSON.parse(await GM.getValue(fleet.publicKey.toString(), '{}'));
-        cLog(4, `fleetParsedData.loadCargo: ${fleetParsedData.loadCargo} fleetParsedData.unloadCargo ${fleetParsedData.unloadCargo} for ${destX},${destY}`);
+        logger.log(4, `fleetParsedData.loadCargo: ${fleetParsedData.loadCargo} fleetParsedData.unloadCargo ${fleetParsedData.unloadCargo} for ${destX},${destY}`);
         let loadCargoManifest = fleetParsedData.loadCargo ? JSON.parse(fleetParsedData.loadCargo) : [];  // Correction: Vérification et défaut à []
         let unloadCargoManifest = fleetParsedData.unloadCargo ? JSON.parse(fleetParsedData.unloadCargo) : [];  // Correction: Vérification et défaut à []
         const hasLoadManifest = hasTransportManifest(loadCargoManifest);
@@ -5017,7 +5015,7 @@ var sly = (async function (exports) {
                         fuelToAdd = fuelData.capacity - fuelData.amount;
                     }
 
-                    cLog(3, `${FleetTimeStamp(fleet.label)} Fuel needed: ${fuelData.fuelNeeded}, Fuel found: ${fuelData.amount}, Fuel to add: ${fuelToAdd}, Load: ${checkCargoResult.needToLoad}, Unload: ${checkCargoResult.needToUnload}, LoadCrew: ${needToLoadCrew}, UnloadCrew: ${needToUnloadCrew}`);
+                    logger.log(3, `${FleetTimeStamp(fleet.label)} Fuel needed: ${fuelData.fuelNeeded}, Fuel found: ${fuelData.amount}, Fuel to add: ${fuelToAdd}, Load: ${checkCargoResult.needToLoad}, Unload: ${checkCargoResult.needToUnload}, LoadCrew: ${needToLoadCrew}, UnloadCrew: ${needToUnloadCrew}`);
 
                     if (checkCargoResult.needToLoad || checkCargoResult.needToUnload || fuelToAdd > 0 || needToLoadCrew > 0 || needToUnloadCrew > 0) {
                         let transportLoadUnloadSingleTx = globalSettings.transportLoadUnloadSingleTx;
@@ -5034,12 +5032,12 @@ var sly = (async function (exports) {
                             let crewResp = await handleCrewLoading(fleet, fleet.starbaseCoord, needToLoadCrew, transportLoadUnloadSingleTx);
                             if (crewResp && crewResp.name === 'NotEnoughCrew') {
                                 if (globalSettings.transportStopOnError) {
-                                    cLog(1, `${FleetTimeStamp(fleet.label)} Transporting - ERROR: Not enough crew`);
+                                    logger.log(1, `${FleetTimeStamp(fleet.label)} Transporting - ERROR: Not enough crew`);
                                     updateFleetState(fleet, 'ERROR: Not enough crew');
                                     fleet.resupplying = false;
                                     return;
                                 } else {
-                                    cLog(1, `${FleetTimeStamp(fleet.label)} Not enough crew`);
+                                    logger.log(1, `${FleetTimeStamp(fleet.label)} Not enough crew`);
                                 }
                             } else if (transportLoadUnloadSingleTx && crewResp) {
                                 transactions.push(crewResp);
@@ -5050,7 +5048,7 @@ var sly = (async function (exports) {
                             resp = await handleTransportUnloading(fleet, fleet.starbaseCoord, unloadCargoManifest, transportLoadUnloadSingleTx);
                             transactions = transactions.concat(resp.transactions);
                         } else {
-                            cLog(1, `${FleetTimeStamp(fleet.label)} Unloading skipped - No resources specified`);
+                            logger.log(1, `${FleetTimeStamp(fleet.label)} Unloading skipped - No resources specified`);
                         }
 
                         let refuelResp = await handleTransportRefueling(fleet, fleet.starbaseCoord, [starbaseX, starbaseY], [destX, destY], true, 0, loadCargoManifest, transportLoadUnloadSingleTx);
@@ -5073,14 +5071,14 @@ var sly = (async function (exports) {
                         if (hasLoadManifest) {
                             const loadedCargo = await handleTransportLoading(i, fleet.starbaseCoord, loadCargoManifest, transportLoadUnloadSingleTx, resp.unloadedAmount);
                             if (!loadedCargo.success && globalSettings.transportStopOnError) {
-                                cLog(1, `${FleetTimeStamp(fleet.label)} ERROR: Unexpected error on cargo load`);
+                                logger.log(1, `${FleetTimeStamp(fleet.label)} ERROR: Unexpected error on cargo load`);
                                 fleet.resupplying = false;
                                 return;
                             } else if (transportLoadUnloadSingleTx) {
                                 transactions = transactions.concat(loadedCargo.transactions);
                             }
                         } else {
-                            cLog(1, `${FleetTimeStamp(fleet.label)} Loading skipped - No resources specified`);
+                            logger.log(1, `${FleetTimeStamp(fleet.label)} Loading skipped - No resources specified`);
                         }
 
                         let undockResult = await execUndock(fleet, fleet.starbaseCoord, transportLoadUnloadSingleTx);
@@ -5100,16 +5098,16 @@ var sly = (async function (exports) {
                     // Pas de chargement/déchargement nécessaire, marquer comme terminé
                     fleet.ressuplied = false;
                     fleet.resupplying = false;
-                    cLog(1, `${FleetTimeStamp(fleet.label)} No cargo operations needed, moving`);
-                    cLog(4, `Moving fleet to ${fleet.destCoord} moveType: ${fleet.moveType}`);
+                    logger.log(1, `${FleetTimeStamp(fleet.label)} No cargo operations needed, moving`);
+                    logger.log(4, `Moving fleet to ${fleet.destCoord} moveType: ${fleet.moveType}`);
                     const [destX, destY] = ConvertCoords(fleet.destCoord);
                     const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
                     // Vérifier si on doit se déplacer vers la destination
                     if (fleetCoords[0] !== destX || fleetCoords[1] !== destY) {
-                        cLog(4, `${FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);
+                        logger.log(4, `${FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);
                         const moveDist = calculateMovementDistance(fleetCoords, [destX, destY]);
                         let isStarbaseAndWarpSubwarp = userFleets[i].moveType == 'warpsubwarp' && ((fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) || (fleetCoords[0] == destX && fleetCoords[1] == destY));
-                        cLog(4, `${FleetTimeStamp(fleet.label)} Moving to starbase: ${fleet.destCoord}`);
+                        logger.log(4, `${FleetTimeStamp(fleet.label)} Moving to starbase: ${fleet.destCoord}`);
                         await handleMovement(i, moveDist, destX, destY, isStarbaseAndWarpSubwarp);
 
                         fleet.moving = false; // Attendre d'être à la destination
@@ -5124,7 +5122,7 @@ var sly = (async function (exports) {
 
     async function handleEmptyMove(i, fleetState, fleetCoords) {
         const fleet = userFleets[i];
-        cLog(4, `moveType: ${fleet.moveType}`);
+        logger.log(4, `moveType: ${fleet.moveType}`);
         const [destX, destY] = ConvertCoords(fleet.destCoord);
         const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
         if (fleetCoords[0] === starbaseX && fleetCoords[1] === starbaseY) {
@@ -5138,7 +5136,7 @@ var sly = (async function (exports) {
                 fuelToAdd = fuelData.capacity - fuelData.amount;
             }
             if (fuelToAdd > 0) {
-                cLog(3, `${FleetTimeStamp(fleet.label)} Fuel needed: ${fuelData.fuelNeeded}, Fuel found: ${fuelData.amount}, Fuel to add: ${fuelToAdd}, Load: ${checkCargoResult.needToLoad}, Unload: ${checkCargoResult.needToUnload}, LoadCrew: ${needToLoadCrew}, UnloadCrew: ${needToUnloadCrew}`);
+                logger.log(3, `${FleetTimeStamp(fleet.label)} Fuel needed: ${fuelData.fuelNeeded}, Fuel found: ${fuelData.amount}, Fuel to add: ${fuelToAdd}, Load: ${checkCargoResult.needToLoad}, Unload: ${checkCargoResult.needToUnload}, LoadCrew: ${needToLoadCrew}, UnloadCrew: ${needToUnloadCrew}`);
                 let transactions = [];
                 let refuelResp = await handleTransportRefueling(fleet, fleet.starbaseCoord, [starbaseX, starbaseY], [destX, destY], true, 0, loadCargoManifest, transportLoadUnloadSingleTx);
                 if (refuelResp.status === 0) {
@@ -5155,16 +5153,16 @@ var sly = (async function (exports) {
                 updateFleetState(fleet, 'Idle');
                 fleet.resupplying = false;
                 await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleet));
-                cLog(1, `${FleetTimeStamp(fleet.label)} No cargo operations needed, moving`);
-                cLog(4, `Moving fleet to ${fleet.destCoord} moveType: ${fleet.moveType}`);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} No cargo operations needed, moving`);
+                logger.log(4, `Moving fleet to ${fleet.destCoord} moveType: ${fleet.moveType}`);
                 const [destX, destY] = ConvertCoords(fleet.destCoord);
                 const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
                 // Vérifier si on doit se déplacer vers la destination
                 if (fleetCoords[0] !== destX || fleetCoords[1] !== destY) {
-                    cLog(4, `${FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);
+                    logger.log(4, `${FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);
                     const moveDist = calculateMovementDistance(fleetCoords, [destX, destY]);
                     let isStarbaseAndWarpSubwarp = userFleets[i].moveType == 'warpsubwarp' && ((fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) || (fleetCoords[0] == destX && fleetCoords[1] == destY));
-                    cLog(2, `${FleetTimeStamp(fleet.label)} Moving to starbase: ${fleet.destCoord}`);
+                    logger.log(2, `${FleetTimeStamp(fleet.label)} Moving to starbase: ${fleet.destCoord}`);
                     await handleMovement(i, moveDist, destX, destY, isStarbaseAndWarpSubwarp);
                     fleet.ressuplied = true;
                     fleet.moving = false; // Attendre d'être à la destination
@@ -5195,7 +5193,7 @@ var sly = (async function (exports) {
             fuelNeeded = subwarpCost * costMultiplier;
         }
 
-        //cLog(4, `${FleetTimeStamp(fleet.label)} getFleetFuelData -> calcWarpFuelReq:`, currentPos, targetPos);
+        //logger.log(4, `${FleetTimeStamp(fleet.label)} getFleetFuelData -> calcWarpFuelReq:`, currentPos, targetPos);
         return {
             account,
             token,
@@ -5291,7 +5289,7 @@ var sly = (async function (exports) {
     }
 
     async function fuelFleet(fleet, dockCoords, account, amount, returnTx) {
-        cLog(1, `${FleetTimeStamp(fleet.label)} Filling fuel tank: ${amount}`);
+        logger.log(1, `${FleetTimeStamp(fleet.label)} Filling fuel tank: ${amount}`);
         let fuelCargoTypeAcct = cargoTypes.find(item => item.account.mint.toString() == sageGameAcct.account.mints.fuel);
         const fuelResp = await execCargoFromStarbaseToFleet(
             fleet,
@@ -5309,7 +5307,7 @@ var sly = (async function (exports) {
     }
 
     async function handleTransportRefueling(fleet, starbaseCoord, currentPos, targetPos, roundTrip = true, amountToDropOff = 0, transportManifest, returnTx) {
-        cLog(1, `${FleetTimeStamp(fleet.label)} ⛽ Refueling`);
+        logger.log(1, `${FleetTimeStamp(fleet.label)} ⛽ Refueling`);
         updateFleetState(fleet, 'Refueling');
         let fuelResp = {status: 0, detail: '', amount: 0};
 
@@ -5328,7 +5326,7 @@ var sly = (async function (exports) {
             */
 
         if (fuelData.fuelNeeded > fuelData.capacity) {
-            cLog(1, `${FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for round trip`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for round trip`);
             fuelResp.detail = 'ERROR: Fuel tank too small for round trip';
             return fuelResp;
         }
@@ -5337,11 +5335,11 @@ var sly = (async function (exports) {
 
         //Log fuel readouts
         const extraFuel = Math.floor(fuelData.amount - fuelData.fuelNeeded);
-        cLog(2, `${FleetTimeStamp(fleet.label)} Current Fuel: ${fuelData.amount}`);
-        cLog(2, `${FleetTimeStamp(fleet.label)} Warp Cost: ${fuelData.warpCost}`);
-        cLog(2, `${FleetTimeStamp(fleet.label)} Subwarp Cost: ${fuelData.subwarpCost}`);
-        cLog(2, `${FleetTimeStamp(fleet.label)} Fuel To Transport: ${fuelEntry.amt}`);
-        cLog(2, `${FleetTimeStamp(fleet.label)} Extra Fuel: ${extraFuel}`);
+        logger.log(2, `${FleetTimeStamp(fleet.label)} Current Fuel: ${fuelData.amount}`);
+        logger.log(2, `${FleetTimeStamp(fleet.label)} Warp Cost: ${fuelData.warpCost}`);
+        logger.log(2, `${FleetTimeStamp(fleet.label)} Subwarp Cost: ${fuelData.subwarpCost}`);
+        logger.log(2, `${FleetTimeStamp(fleet.label)} Fuel To Transport: ${fuelEntry.amt}`);
+        logger.log(2, `${FleetTimeStamp(fleet.label)} Extra Fuel: ${extraFuel}`);
 
         let transactions = [];
         let alreadyLoaded = 0;
@@ -5350,7 +5348,7 @@ var sly = (async function (exports) {
         if (amountToDropOff > 0) {
             const fuelToUnload = Math.min(amountToDropOff, extraFuel);
             if (fuelToUnload > 0) {
-                cLog(1, `${FleetTimeStamp(fleet.label)} Unloading extra fuel: ${fuelToUnload}`);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} Unloading extra fuel: ${fuelToUnload}`);
                 let resp = await execCargoFromFleetToStarbase(fleet, fleet.fuelTank, sageGameAcct.account.mints.fuel.toString(), starbaseCoord, fuelToUnload, returnTx);
                 alreadyLoaded -= fuelToUnload;
                 if (returnTx && resp) {
@@ -5377,11 +5375,11 @@ var sly = (async function (exports) {
         }
 
         //Put in the fuel
-        cLog(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd}`)
+        logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd}`)
         let execResp = await fuelFleet(fleet, starbaseCoord, fuelData.account, fuelToAdd, returnTx);
-        cLog(4, `${JSON.stringify(execResp)}`);
+        logger.log(4, `${JSON.stringify(execResp)}`);
         if (execResp && execResp.name == 'NotEnoughResource') {
-            cLog(1, `${FleetTimeStamp(fleet.label)} ERROR: Not enough fuel`);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} ERROR: Not enough fuel`);
             if (globalSettings.emailNotEnoughFFA) await sendEMail(fleet.label + ' not enough fuel', '');
             fuelResp.detail = 'ERROR: Not enough fuel';
         } else {
@@ -5494,7 +5492,7 @@ var sly = (async function (exports) {
     }
 
     async function handleTransportUnloading(fleet, starbaseCoord, transportManifest, returnTx) {
-        cLog(1, `${FleetTimeStamp(fleet.label)} 🚚 Unloading Transport`);
+        logger.log(1, `${FleetTimeStamp(fleet.label)} 🚚 Unloading Transport`);
         updateFleetState(fleet, 'Unloading');
 
         const ammoMint = sageGameAcct.account.mints.ammo.toString();
@@ -5520,7 +5518,7 @@ var sly = (async function (exports) {
                     amountToUnload -= 1;
                 }
                 if (amountToUnload > 0) {
-                    cLog(1, `${FleetTimeStamp(fleet.label)} Unloading ${amountToUnload} ${entry.res}`);
+                    logger.log(1, `${FleetTimeStamp(fleet.label)} Unloading ${amountToUnload} ${entry.res}`);
                     let resp = await execCargoFromFleetToStarbase(fleet, fleet.cargoHold, entry.res, starbaseCoord, amountToUnload, returnTx);
                     if (returnTx && resp) {
                         transactions.push(resp);
@@ -5529,7 +5527,7 @@ var sly = (async function (exports) {
                     if (isAmmo) ammoUnloadDeficit -= amountToUnload;
                     unloadedAmount += amountToUnload * cargoItems.find(r => r.token === entry.res).size;
                 } else {
-                    cLog(1, `${FleetTimeStamp(fleet.label)} Unload ${entry.res} skipped - none found in ship's cargo hold`);
+                    logger.log(1, `${FleetTimeStamp(fleet.label)} Unload ${entry.res} skipped - none found in ship's cargo hold`);
                 }
 
             }
@@ -5543,7 +5541,7 @@ var sly = (async function (exports) {
                 ammoToUnload -= 1;
             }
             if (ammoToUnload > 0) {
-                cLog(1, `${FleetTimeStamp(fleet.label)} Unloading Ammobanks: ${ammoToUnload}`);
+                logger.log(1, `${FleetTimeStamp(fleet.label)} Unloading Ammobanks: ${ammoToUnload}`);
                 let resp = await execCargoFromFleetToStarbase(fleet, fleet.ammoBank, ammoMint, starbaseCoord, ammoToUnload, returnTx);
                 if (returnTx && resp) {
                     transactions.push(resp);
@@ -5556,7 +5554,7 @@ var sly = (async function (exports) {
 
 
     async function handleTransportLoading(i, starbaseCoords, transportManifest, returnTx, alreadyUnloadedInTransaction) {
-        cLog(1, `${FleetTimeStamp(userFleets[i].label)} 📦 Loading Transport`);
+        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} 📦 Loading Transport`);
         updateFleetState(userFleets[i], 'Loading');
 
         //Use ammo banks if possible
@@ -5571,20 +5569,20 @@ var sly = (async function (exports) {
         }
 
         //Calculate remaining free cargo space
-        cLog(2, `${FleetTimeStamp(userFleets[i].label)} Calculating cargoSpace ...`);
+        logger.log(2, `${FleetTimeStamp(userFleets[i].label)} Calculating cargoSpace ...`);
         const fleetCurrentCargo = await solanaReadConnection.getParsedTokenAccountsByOwner(userFleets[i].cargoHold, {programId: tokenProgramPK});
         const cargoCnt = fleetCurrentCargo.value.reduce((n, {account}) => n + account.data.parsed.info.tokenAmount.uiAmount * cargoItems.find(r => r.token == account.data.parsed.info.mint).size, 0);
         let cargoSpace = userFleets[i].cargoCapacity - cargoCnt;
         if (alreadyUnloadedInTransaction) cargoSpace += alreadyUnloadedInTransaction;
         const startingCargoSpace = cargoSpace;
         let expectedCnt = 0;
-        cLog(2, `${FleetTimeStamp(userFleets[i].label)} cargoSpace remaining: ${cargoSpace}`);
+        logger.log(2, `${FleetTimeStamp(userFleets[i].label)} cargoSpace remaining: ${cargoSpace}`);
 
         let notEnoughInfo = '';
         for (const entry of transportManifest) {
             if (entry.res && entry.amt > 0) {
                 if (cargoSpace < 1) {
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Cargo full - remaining loading process skipped`);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Cargo full - remaining loading process skipped`);
                     break;
                 }
 
@@ -5607,7 +5605,7 @@ var sly = (async function (exports) {
                 const resMax = Math.floor(Math.min(cargoSpace / cargoItems.find(r => r.token == entry.res).size, isAmmo ? entry.amt - ammoLoadingIntoAmmoBank - currentResAmt : entry.amt - currentResAmt));
                 expectedCnt += resMax;
                 if (resMax > 0) {
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Attempting to load ${resMax} ${entry.res} from ${starbaseCoords}`);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Attempting to load ${resMax} ${entry.res} from ${starbaseCoords}`);
                     const resp = await execCargoFromStarbaseToFleet(
                         userFleets[i],
                         userFleets[i].cargoHold,
@@ -5620,12 +5618,12 @@ var sly = (async function (exports) {
                         returnTx,
                         ((returnTx && entry.alreadyLoadedInTransaction) ? entry.alreadyLoadedInTransaction : 0)
                     );
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Loaded ${resp.amount} ${entry.res}: `, resp);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Loaded ${resp.amount} ${entry.res}: `, resp);
                     cargoSpace -= resp && resp.amount ? cargoItems.find(r => r.token == entry.res).size * resp.amount : 0;
 
                     if (resp && resp.name == 'NotEnoughResource') {
                         const resShort = cargoItems.find(r => r.token == entry.res).name;
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Not enough ${resShort}`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Not enough ${resShort}`);
                         notEnoughInfo += 'Not enough ' + resShort + '\n';
                     } else if (returnTx && resp && resp.tx) {
                         transactions.push(resp.tx);
@@ -5635,7 +5633,7 @@ var sly = (async function (exports) {
         }
         if (startingCargoSpace == cargoSpace && expectedCnt > 0) {
             updateFleetState(userFleets[i], 'ERROR: No cargo loaded');
-            cLog(2, `${FleetTimeStamp(userFleets[i].label)} ERROR: No cargo loaded`);
+            logger.log(2, `${FleetTimeStamp(userFleets[i].label)} ERROR: No cargo loaded`);
             if (globalSettings.emailNoCargoLoaded) await sendEMail(userFleets[i].label + ' no cargo loaded', notEnoughInfo);
         }
         return {success: !userFleets[i].state.includes('ERROR'), transactions: transactions};
@@ -5650,7 +5648,7 @@ var sly = (async function (exports) {
     }
 
     async function operateFleet(i) {
-        cLog(4, `Operate fleet ${userFleets[i].label}`);
+        logger.log(4, `Operate fleet ${userFleets[i].label}`);
         if (globalErrorTracker.errorCount > 9) toggleAssistant('ERROR');
 
         // Ne pas exécuter les flottes en erreur
@@ -5672,7 +5670,7 @@ var sly = (async function (exports) {
         const mining = userFleets[i].mineEnd && userFleets[i].state.includes('Mine') && (Date.now() < userFleets[i].mineEnd);
         const onTarget = userFleets[i].destCoord;
 
-        if (moving) cLog(4, `${FleetTimeStamp(userFleets[i].label)} Operating moving fleet`);
+        if (moving) logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Operating moving fleet`);
         if (userFleets[i].resupplying || mining) return;
         if (!onTarget && waitingForWarpCD) return;
         let forceNewAutoMoveTarget = false;
@@ -5681,36 +5679,36 @@ var sly = (async function (exports) {
             let fleetSavedData = await GM.getValue(userFleets[i].publicKey.toString(), '{}');
             let fleetParsedData = JSON.parse(fleetSavedData);
             userFleets[i].iterCnt++;
-            cLog(4, `${FleetTimeStamp(userFleets[i].label)} <getAccountInfo> (${userFleets[i].state})`);
+            logger.log(4, `${FleetTimeStamp(userFleets[i].label)} <getAccountInfo> (${userFleets[i].state})`);
             let fleetAcctInfo = await getAccountInfo(userFleets[i].label, 'full fleet info', userFleets[i].publicKey);
             updateFleetMiscStats(userFleets[i], fleetAcctInfo);
             let [fleetState, extra] = getFleetState(fleetAcctInfo, userFleets[i]);
-            cLog(4, `${FleetTimeStamp(userFleets[i].label)} chain fleet state: ${fleetState}`);
+            logger.log(4, `${FleetTimeStamp(userFleets[i].label)} chain fleet state: ${fleetState}`);
             let fleetCoords = fleetState === 'Idle' ? extra : [];
             let fleetMining = fleetState === 'MineAsteroid' ? extra : null;
             userFleets[i].startingCoords = fleetCoords;
-            cLog(4, `Starting coords ${fleetCoords} iterCount: ${userFleets[i].iterCnt} state:${fleetState} fleetCoords:${fleetCoords}`);
+            logger.log(4, `Starting coords ${fleetCoords} iterCount: ${userFleets[i].iterCnt} state:${fleetState} fleetCoords:${fleetCoords}`);
 
             if (moving && fleetState === 'Idle') {
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - Updating from ${userFleets[i].state} to ${fleetState}`);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - Updating from ${userFleets[i].state} to ${fleetState}`);
                 updateFleetState(userFleets[i], fleetState);
             }
-            cLog(4, `(userFleets[i].iterCnt < 2) && fleetState == 'StarbaseLoadingBay':${(userFleets[i].iterCnt < 2) && fleetState === 'StarbaseLoadingBay'}`);
+            logger.log(4, `(userFleets[i].iterCnt < 2) && fleetState == 'StarbaseLoadingBay':${(userFleets[i].iterCnt < 2) && fleetState === 'StarbaseLoadingBay'}`);
             if ((userFleets[i].iterCnt < 2) && fleetState === 'StarbaseLoadingBay') {
                 if (fleetParsedData.assignment === 'Mine' || fleetParsedData.assignment === 'Transport') {
                     await execStartupUndock(i, fleetParsedData.assignment);
                 }
             } else if (fleetState === 'MoveWarp' || fleetState === 'MoveSubwarp') {
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} executing handleMovement`);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} executing handleMovement`);
                 await handleMovement(i, null, null, null);
             } else if (fleetParsedData.assignment === 'Mine') {
                 if (fleetState === 'MineAsteroid' && !userFleets[i].state.includes('Mine')) {
-                    cLog(1, `${FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - retrying`);
+                    logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - retrying`);
                     for (let retryCount = 1; retryCount <= 4; retryCount++) {
                         await wait(10000);
                         fleetAcctInfo = await getAccountInfo(userFleets[i].label, 'full fleet info', userFleets[i].publicKey);
                         [fleetState, extra] = getFleetState(fleetAcctInfo, userFleets[i]);
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} chain fleet state (after retry ${retryCount}/4): ${fleetState}`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} chain fleet state (after retry ${retryCount}/4): ${fleetState}`);
                         fleetCoords = fleetState === 'Idle' ? extra : [];
                         fleetMining = fleetState === 'MineAsteroid' ? extra : null;
                         userFleets[i].startingCoords = fleetCoords;
@@ -5719,21 +5717,21 @@ var sly = (async function (exports) {
                         }
                     }
                     if (fleetState === 'MineAsteroid' && !userFleets[i].state.includes('Mine')) {
-                        cLog(1, `${FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - Updating to Mining again`);
+                        logger.log(1, `${FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - Updating to Mining again`);
                         updateFleetState(userFleets[i], 'Mine [' + TimeToStr(new Date(Date.now())) + ']');
                     }
                 }
                 await handleMining(i, userFleets[i].state, fleetCoords, fleetMining);
             } else if (fleetParsedData.assignment === 'Transport') {
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} executing handleSupply`);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} executing handleSupply`);
                 await handleSupply(i, fleetState, fleetCoords);
             } else if (fleetParsedData.assignment === 'Move') {
-                cLog(4, `${FleetTimeStamp(userFleets[i].label)} executing handleEmptyMove`);
+                logger.log(4, `${FleetTimeStamp(userFleets[i].label)} executing handleEmptyMove`);
                 await handleEmptyMove(i, fleetState, fleetCoords);
             }
         } catch (err) {
-            cLog(1, `${FleetTimeStamp(userFleets[i].label)} ERROR`, err);
-            cLog(1, 'Error while operating fleet: ' + (err.message ? err.message : err));  // Remplacé logError par cLog
+            logger.log(1, `${FleetTimeStamp(userFleets[i].label)} ERROR`, err);
+            logger.log(1, 'Error while operating fleet: ' + (err.message ? err.message : err));  // Remplacé logger.logError par logger.log
         }
     }
 
@@ -5745,7 +5743,7 @@ var sly = (async function (exports) {
         const fleet = userFleets[i];
 
         try {
-            //cLog(1,`${FleetTimeStamp(userFleets[i].label)} Operating fleet ...`);
+            //logger.log(1,`${FleetTimeStamp(userFleets[i].label)} Operating fleet ...`);
             const fleetSavedData = await GM.getValue(fleet.publicKey.toString(), '{}');
             const fleetParsedData = JSON.parse(fleetSavedData);
 
@@ -5765,7 +5763,7 @@ var sly = (async function (exports) {
             }
         } catch (error) {
             extraTime = 20000;
-            cLog(1, `${FleetTimeStamp(fleet.label)} Uncaught error - waiting 20s longer`, error);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Uncaught error - waiting 20s longer`, error);
 
             fleet.fontColor = 'crimson';
             updateAssistStatus(fleet);
@@ -5849,11 +5847,11 @@ var sly = (async function (exports) {
 
         let limitingIngredient = starbasePlayerIngredientCargoHolds.reduce((prev, curr) => prev && prev.amountCraftable < curr.amountCraftable ? prev : curr);
 
-        cLog(4, 'DEBUG limitingIngredient: ', limitingIngredient);
-        cLog(4, 'DEBUG targetAmount: ', targetAmount);
+        logger.log(4, 'DEBUG limitingIngredient: ', limitingIngredient);
+        logger.log(4, 'DEBUG targetAmount: ', targetAmount);
         if (limitingIngredient.amountCraftable < targetAmount) {
             for (let ingredient of starbasePlayerIngredientCargoHolds) {
-                cLog(4, 'DEBUG ingredient: ', ingredient);
+                logger.log(4, 'DEBUG ingredient: ', ingredient);
                 if (ingredient.craftAmount > 0) {
                     let filterData = ['SDU'];
                     if (special.includes('f2')) filterData.push('Framework', 'Framework 3');
@@ -5969,11 +5967,11 @@ var sly = (async function (exports) {
                 targetX = userCraft.craftingCoords.split(',')[0].trim();
                 targetY = userCraft.craftingCoords.split(',')[1].trim();
                 starbase = await getStarbaseFromCoords(targetX, targetY, true);
-                cLog(2, FleetTimeStamp(userCraft.label), 'starbase: ', starbase);
+                logger.log(2, FleetTimeStamp(userCraft.label), 'starbase: ', starbase);
                 craftTime = await getStarbaseTime(starbase, 'Craft');
                 upgradeTime = await getStarbaseTime(starbase, 'Upgrade');
-                cLog(2, FleetTimeStamp(userCraft.label), 'craftTime: ', craftTime);
-                cLog(2, FleetTimeStamp(userCraft.label), 'upgradeTime: ', upgradeTime);
+                logger.log(2, FleetTimeStamp(userCraft.label), 'craftTime: ', craftTime);
+                logger.log(2, FleetTimeStamp(userCraft.label), 'upgradeTime: ', upgradeTime);
 
                 starbasePlayer = await getStarbasePlayer(userProfileAcct, starbase.publicKey);
                 starbasePlayer = starbasePlayer ? starbasePlayer.publicKey : await execRegisterStarbasePlayer('Craft', userCraft.craftingCoords);
@@ -6074,7 +6072,7 @@ var sly = (async function (exports) {
                 }
 
                 if (!craftingProcessRunning) {
-                    cLog(1, `${FleetTimeStamp(userCraft.label)} Crafting process not found. Setting state to Idle.`);
+                    logger.log(1, `${FleetTimeStamp(userCraft.label)} Crafting process not found. Setting state to Idle.`);
                     userCraft.craftingId = 0;
                     updateFleetState(userCraft, 'Idle');
                     await updateCraft(userCraft);
@@ -6087,7 +6085,7 @@ var sly = (async function (exports) {
                     for (let craftingProcess of completedCraftingProcesses) {
                         let craftRecipe = craftRecipes.find(item => item.publicKey.toString() === craftingProcess.recipe.toString());
                         if (userCraft.craftingId && craftingProcess.craftingId == userCraft.craftingId) {
-                            cLog(1, `${FleetTimeStamp(userCraft.label)} Completing craft at [${targetX}, ${targetY}] for  ${craftRecipe.output.mint.toString()}`);
+                            logger.log(1, `${FleetTimeStamp(userCraft.label)} Completing craft at [${targetX}, ${targetY}] for  ${craftRecipe.output.mint.toString()}`);
                             //updateFleetState(userCraft, 'Craft Completing');
                             updateFleetState(userCraft, 'Completing: ' + craftRecipe.name + (userCraft.item != craftRecipe.name ? ' (' + userCraft.item + ')' : ''));
                             await execCompleteCrafting(starbase, starbasePlayer, starbasePlayerCargoHoldsAndTokens, craftingProcess, userCraft);
@@ -6107,7 +6105,7 @@ var sly = (async function (exports) {
                     for (let upgradeProcess of completedUpgradeProcesses) {
                         let craftingRecipe = upgradeRecipes.find(item => item.publicKey.toString() === upgradeProcess.recipe.toString());
                         if (userCraft.craftingId && upgradeProcess.craftingId == userCraft.craftingId) {
-                            cLog(1, `${FleetTimeStamp(userCraft.label)} Completing upgrade at [${targetX}, ${targetY}] for  ${craftingRecipe.input[0].mint.toString()}`);
+                            logger.log(1, `${FleetTimeStamp(userCraft.label)} Completing upgrade at [${targetX}, ${targetY}] for  ${craftingRecipe.input[0].mint.toString()}`);
                             updateFleetState(userCraft, 'Upgrade Completing');
                             await execCompleteUpgrade(starbase, starbasePlayer, starbasePlayerCargoHoldsAndTokens, upgradeProcess, userCraft);
                             if (!userCraft.state.includes('ERROR')) {
@@ -6159,16 +6157,16 @@ var sly = (async function (exports) {
 
                 if (!enableAssistant) return;
 
-                cLog(3, FleetTimeStamp(userCraft.label), 'targetRecipe: ', targetRecipe);
-                cLog(3, FleetTimeStamp(userCraft.label), 'starbasePlayerInfo: ', starbasePlayerInfo);
-                cLog(3, FleetTimeStamp(userCraft.label), 'availableCrew: ', availableCrew);
-                cLog(3, FleetTimeStamp(userCraft.label), 'userCraft: ', userCraft);
-                cLog(3, FleetTimeStamp(userCraft.label), 'userCraft.crew: ', userCraft.crew);
-                cLog(3, FleetTimeStamp(userCraft.label), 'userCraft.state: ', userCraft.state);
+                logger.log(3, FleetTimeStamp(userCraft.label), 'targetRecipe: ', targetRecipe);
+                logger.log(3, FleetTimeStamp(userCraft.label), 'starbasePlayerInfo: ', starbasePlayerInfo);
+                logger.log(3, FleetTimeStamp(userCraft.label), 'availableCrew: ', availableCrew);
+                logger.log(3, FleetTimeStamp(userCraft.label), 'userCraft: ', userCraft);
+                logger.log(3, FleetTimeStamp(userCraft.label), 'userCraft.crew: ', userCraft.crew);
+                logger.log(3, FleetTimeStamp(userCraft.label), 'userCraft.state: ', userCraft.state);
 
                 if (availableCrew >= userCraft.crew && targetRecipe && targetRecipe.amountCraftable > 0 && userCraft.state === 'Idle') {
                     let craftAmount = Math.min(targetRecipe.craftAmount, targetRecipe.amountCraftable);
-                    cLog(1, `${FleetTimeStamp(userCraft.label)} Starting craft at [${targetX}, ${targetY}] for ${craftAmount} ${targetRecipe.craftRecipe.name}`);
+                    logger.log(1, `${FleetTimeStamp(userCraft.label)} Starting craft at [${targetX}, ${targetY}] for ${craftAmount} ${targetRecipe.craftRecipe.name}`);
                     //updateFleetState(userCraft, 'Craft Starting');
                     let activityType = craftRecipes.some(item => item.name === targetRecipe.craftRecipe.name) ? 'Crafting' : 'Upgrading';
 
@@ -6179,7 +6177,7 @@ var sly = (async function (exports) {
                         const atlasNeeded = Number((craftAmount * targetRecipe.craftRecipe.feeAmount).toFixed(10));
                         const atlasParsedBalance = await solanaReadConnection.getParsedTokenAccountsByOwner(userPublicKey, {mint: new solanaWeb3.PublicKey('ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx')});
                         const atlasBalance = (atlasParsedBalance.value[0] ? atlasParsedBalance.value[0].account.data.parsed.info.tokenAmount.uiAmount : 0);
-                        cLog(3, FleetTimeStamp(userCraft.label), 'atlas needed: ', atlasNeeded, ', atlas available: ', atlasBalance);
+                        logger.log(3, FleetTimeStamp(userCraft.label), 'atlas needed: ', atlasNeeded, ', atlas available: ', atlasBalance);
                         if (atlasBalance < atlasNeeded) {
                             enoughAtlas = false;
                         }
@@ -6194,7 +6192,7 @@ var sly = (async function (exports) {
                             }
                             if (amountAvailable >= parseInt(userCraft.belowAmount)) {
                                 craftThresholdReached = false;
-                                cLog(3, FleetTimeStamp(userCraft.label), 'crafting paused: starbase amount available ', amountAvailable, ', craft if stock is below:', parseInt(userCraft.belowAmount));
+                                logger.log(3, FleetTimeStamp(userCraft.label), 'crafting paused: starbase amount available ', amountAvailable, ', craft if stock is below:', parseInt(userCraft.belowAmount));
                             }
                         }
                     }
@@ -6247,7 +6245,7 @@ var sly = (async function (exports) {
                 }
             }
         } catch (error) {
-            cLog(1, `${FleetTimeStamp(userCraft.label)} Uncaught crafting error`, error);
+            logger.log(1, `${FleetTimeStamp(userCraft.label)} Uncaught crafting error`, error);
         }
         setTimeout(() => {
             startCraft(userCraft);
@@ -6261,7 +6259,7 @@ var sly = (async function (exports) {
             if (globalSettings.mySecretKey) {
                 let mySecret = JSON.parse(globalSettings.mySecretKey);
                 customKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(mySecret));
-                cLog(1, "SLYA uses custom key with public address:", customKeypair.publicKey.toString());
+                logger.log(1, "SLYA uses custom key with public address:", customKeypair.publicKey.toString());
                 userPublicKey = customKeypair.publicKey;
             } else if (typeof solflare === 'undefined') {
                 let walletConn = phantom && phantom.solana ? await phantom.solana.connect() : await solana.connect();
@@ -6272,16 +6270,16 @@ var sly = (async function (exports) {
             }
 
             if (globalSettings.saveProfile && globalSettings.savedProfile && globalSettings.savedProfile.length > 0) {
-                cLog(1, 'Skipping User Profile query, using saved profile');
+                logger.log(1, 'Skipping User Profile query, using saved profile');
                 userProfileAcct = new solanaWeb3.PublicKey(globalSettings.savedProfile[0]);
                 userProfileKeyIdx = globalSettings.savedProfile[1];
                 pointsProfileKeyIdx = globalSettings.savedProfile[2];
             } else {
-                cLog(1, 'Getting User Profiles (this takes a while)');
+                logger.log(1, 'Getting User Profiles (this takes a while)');
                 let userProfiles = await solanaReadConnection.getProgramAccounts(profileProgramPK);
                 let foundProf = [];
 
-                cLog(2, 'initUser: userProfiles[0]', userProfiles[0]);
+                logger.log(2, 'initUser: userProfiles[0]', userProfiles[0]);
                 for (let userProf of userProfiles) {
                     let userProfData = userProf.account.data.subarray(30);
                     let iter = 0;
@@ -6377,7 +6375,7 @@ var sly = (async function (exports) {
                     },
                 },
             ]);
-            cLog(1, 'initUser: userOwnedFleetAccts', userOwnedFleetAccts);
+            logger.log(1, 'initUser: userOwnedFleetAccts', userOwnedFleetAccts);
 
             let userBorrowedFleetAccts = await sageProgram.account.fleet.all([
                 {
@@ -6387,16 +6385,16 @@ var sly = (async function (exports) {
                     },
                 },
             ]);
-            cLog(1, 'initUser: userBorrowedFleetAccts', userBorrowedFleetAccts);
+            logger.log(1, 'initUser: userBorrowedFleetAccts', userBorrowedFleetAccts);
 
             let userFleetAccts = userOwnedFleetAccts.concat(userBorrowedFleetAccts);
-            cLog(1, 'initUser: userFleetAccts', userFleetAccts);
+            logger.log(1, 'initUser: userFleetAccts', userFleetAccts);
 
             let excludeFleets = [];
             if (globalSettings.excludeFleets && globalSettings.excludeFleets.length > 0) {
                 excludeFleets = globalSettings.excludeFleets.trim().replaceAll("\r", "").split("\n");
             }
-            cLog(1, 'initUser: excludeFleets ', excludeFleets);
+            logger.log(1, 'initUser: excludeFleets ', excludeFleets);
 
             for (let fleet of userFleetAccts) {
                 let fleetLabel = (new TextDecoder("utf-8").decode(new Uint8Array(fleet.account.fleetLabel))).replace(/\0/g, '');

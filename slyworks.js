@@ -29,8 +29,6 @@
     'use strict';
     const slyModule = await sly;
 
-    console.log("isInitComplete est une fonction :", typeof slyModule.isInitComplete === 'function');
-    console.log("sly résolu :", slyModule);
     const uiCSS = `
     /* Styles pour le panneau de workflow */
 
@@ -1132,7 +1130,7 @@
             // Réinitialiser avec la nouvelle étape
             await initializeWorkflowForFleet(fleet, workflowSteps);
 
-            cLog(4, `Fleet ${fleet.label} moved to workflow step ${newIndex + 1}/${workflowSteps.length}`);
+            logger.log(4, `Fleet ${fleet.label} moved to workflow step ${newIndex + 1}/${workflowSteps.length}`);
         }
 
         // Rafraîchir l'affichage
@@ -1185,7 +1183,7 @@
             // Réinitialiser avec la première étape
             await initializeWorkflowForFleet(fleet, workflowSteps);
 
-            cLog(4, `Fleet ${fleet.label} workflow reset to step 1`);
+            logger.log(4, `Fleet ${fleet.label} workflow reset to step 1`);
             alert(`Workflow reset to step 1 for ${fleet.label}. Click Start to resume.`);
         }
 
@@ -1677,7 +1675,7 @@
     });
 
     async function startWorkflow(fleetKey) {
-        cLog(4, `Starting workflow for fleet: ${fleetKey}`);
+        logger.log(4, `Starting workflow for fleet: ${fleetKey}`);
         await setWorkflowState(fleetKey, 'running');
 
         // Démarrer directement cette flotte spécifique
@@ -1708,7 +1706,7 @@
     }
 
     async function stopWorkflow(fleetKey) {
-        cLog(4, `Stopping workflow for fleet: ${fleetKey}`);
+        logger.log(4, `Stopping workflow for fleet: ${fleetKey}`);
         await setWorkflowState(fleetKey, 'stopped');
 
         // Marquer la flotte comme arrêtée
@@ -1785,7 +1783,7 @@
     }
 
     async function emergencyResetWorkflow(fleetKey) {
-        cLog(4, `Emergency reset for fleet ${fleetKey}`);
+        logger.log(4, `Emergency reset for fleet ${fleetKey}`);
 
         const fleet = slyModule.getUserFleets().find(f => f.publicKey.toBase58() === fleetKey);
         if (!fleet) return;
@@ -1809,7 +1807,7 @@
         // Reset de l'état de la flotte
         updateFleetState(fleet, 'Idle');
 
-        cLog(4, `Emergency reset completed for ${fleet.label}`);
+        logger.log(4, `Emergency reset completed for ${fleet.label}`);
     }
 
     // Exposer les fonctions pour utilisation en console de debug
@@ -1835,7 +1833,7 @@
             updateFleetMiscStats(fleet, fleetAcctInfo);
             let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
 
-            cLog(4, `Fleet ${fleet.label} current position:`, coords);
+            logger.log(4, `Fleet ${fleet.label} current position:`, coords);
 
             if (coords && coords.length >= 2) {
                 const currentCoordsStr = `${coords[0]},${coords[1]}`;
@@ -1854,7 +1852,7 @@
 
                 await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleetParsedData));
 
-                cLog(4, `Fixed coordinates for ${fleet.label}: ${currentCoordsStr}`);
+                logger.log(4, `Fixed coordinates for ${fleet.label}: ${currentCoordsStr}`);
 
                 // Forcer la continuation du workflow
                 await forceWorkflowContinuation(fleetKey);
@@ -1870,7 +1868,7 @@
 
     // 2. Fonction pour forcer la continuation du workflow
     async function forceWorkflowContinuation(fleetKey) {
-        cLog(4, `Forcing workflow continuation for ${fleetKey}`);
+        logger.log(4, `Forcing workflow continuation for ${fleetKey}`);
 
         const fleet = slyModule.getUserFleets().find(f => f.publicKey.toBase58() === fleetKey);
         if (!fleet) return;
@@ -2185,7 +2183,7 @@
             moveMode: moveMode,
             destination: destination // Ajouter la destination explicitement
         };
-        cLog(4, `Saving step ${JSON.stringify(step)}`);
+        logger.log(4, `Saving step ${JSON.stringify(step)}`);
         saveStep(step);
     });
 
@@ -2237,7 +2235,7 @@
         if (!enableAssistant) return;
 
         if ((tokenCheckCounter % 10) == 0) { // check token balance every 100 seconds
-            cLog(1, 'Checking SOL and Atlas balance');
+            logger.log(1, 'Checking SOL and Atlas balance');
             const solBalance = await solanaReadConnection.getBalance(userPublicKey);
             const atlasBalance = await solanaReadConnection.getParsedTokenAccountsByOwner(userPublicKey, {mint: new solanaWeb3.PublicKey('ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx')});
             document.getElementById('assist-modal-balance').innerHTML = 'SOL:' + ((solBalance / 1000000000).toFixed(3)) + ' Atlas:' + (atlasBalance.value[0] ? parseInt(atlasBalance.value[0].account.data.parsed.info.tokenAmount.uiAmount) : 0);
@@ -2262,7 +2260,7 @@
                     startWorkflowFleet(i);
                 }, 1500 * (i + 1));
             } else {
-                cLog(4, `No workflow for ${slyModule.getUserFleets()[i].label}`);
+                logger.log(4, `No workflow for ${slyModule.getUserFleets()[i].label}`);
             }
         }
 
@@ -2311,7 +2309,7 @@
         // Sauvegarder les données de workflow
         await GM.setValue(workflowDataKey, workflowData);
 
-        cLog(4, `Fleet ${fleet.label} initialized with workflow step ${workflowData.currentStepIndex}: ${currentStep.type}`);
+        logger.log(4, `Fleet ${fleet.label} initialized with workflow step ${workflowData.currentStepIndex}: ${currentStep.type}`);
     }
 
     // Nouvelle fonction pour démarrer une flotte en mode workflow
@@ -2329,7 +2327,7 @@
             // Vérifier si le workflow est toujours actif
             const workflowState = await getWorkflowState(fleet.publicKey);
             if (workflowState !== 'running') {
-                cLog(4, `Workflow arrêté pour ${fleet.label}`);
+                logger.log(4, `Workflow arrêté pour ${fleet.label}`);
                 return;
             }
 
@@ -2341,7 +2339,7 @@
 
                 // Configurer l'étape si pas encore fait
                 if (!fleet.stepConfigured && fleetState !== 'StarbaseLoadingBay') {
-                    cLog(4, `Configuration étape ${fleet.currentWorkflowStep.type} pour ${fleet.label}`);
+                    logger.log(4, `Configuration étape ${fleet.currentWorkflowStep.type} pour ${fleet.label}`);
                     switch (fleet.currentWorkflowStep.type) {
                         case 'resupply':
                             await executeResupplyStep(fleet);
@@ -2365,7 +2363,7 @@
 
                 // Vérifier si l'étape est terminée
                 if (await checkStepCompletion(fleetIndex)) {
-                    cLog(4, `Étape ${fleet.currentWorkflowStep.type} terminée pour ${fleet.label}`);
+                    logger.log(4, `Étape ${fleet.currentWorkflowStep.type} terminée pour ${fleet.label}`);
                     fleet.stepConfigured = false;
                     await cleanupWorkflowStep(fleet);
                     await onWorkflowStepCompleted(fleet.publicKey);
@@ -2374,12 +2372,12 @@
 
                 fleet.fontColor = 'white';
             } else {
-                cLog(4, `Pas de données workflow pour ${fleet.label}`);
+                logger.log(4, `Pas de données workflow pour ${fleet.label}`);
                 return;
             }
         } catch (error) {
             extraTime = 20000;
-            cLog(1, `${FleetTimeStamp(fleet.label)} Erreur workflow - attente 20s`, error);
+            logger.log(1, `${FleetTimeStamp(fleet.label)} Erreur workflow - attente 20s`, error);
             fleet.fontColor = 'crimson';
             updateAssistStatus(fleet);
         }
@@ -2404,14 +2402,14 @@
             if (fleetState.includes('ERROR')) {
                 console.error(`Fleet ${fleet.label} est en erreur: ${fleetState}`);
                 if (fleetState.includes('Fleet must start at Target or Starbase')) {
-                    cLog(4, `Tentative de correction des coordonnées pour ${fleet.label}`);
+                    logger.log(4, `Tentative de correction des coordonnées pour ${fleet.label}`);
                     if (extra && extra.length >= 2) {
                         const currentCoordsStr = `${extra[0]},${extra[1]}`;
                         fleet.destCoord = currentCoordsStr;
                         fleet.starbaseCoord = currentCoordsStr;
                         fleet.startingCoords = [extra[0], extra[1]];
                         updateFleetState(fleet, 'Idle');
-                        cLog(4, `Coordonnées corrigées: ${currentCoordsStr}`);
+                        logger.log(4, `Coordonnées corrigées: ${currentCoordsStr}`);
                         return false;
                     }
                 }
@@ -2435,7 +2433,7 @@
                     const isAtDestination = fleetState === 'Idle' && extra && extra[0] === destX && extra[1] === destY;
 
                     if (isAtDestination) {
-                        cLog(4, `Step resupply terminé pour ${fleet.label} - déclenchement onWorkflowStepCompleted`);
+                        logger.log(4, `Step resupply terminé pour ${fleet.label} - déclenchement onWorkflowStepCompleted`);
                     }
                     return isAtDestination;
 
@@ -2450,7 +2448,7 @@
                     const isAtDestinationMove = fleetState === 'Idle' && extra && extra[0] === destMoveX && extra[1] === destMoveY;
 
                     if (isAtDestinationMove) {
-                        cLog(2, `Step move terminé pour ${fleet.label} - déclenchement onWorkflowStepCompleted`);
+                        logger.log(2, `Step move terminé pour ${fleet.label} - déclenchement onWorkflowStepCompleted`);
                     }
                     return isAtDestinationMove;
 
@@ -2507,7 +2505,7 @@
             fleet.destCoord = '';
             fleet.starbaseCoord = '';
 
-            cLog(4, `Cleaned up workflow step for ${fleet.label}`);
+            logger.log(4, `Cleaned up workflow step for ${fleet.label}`);
 
         } catch (error) {
             console.error(`Erreur nettoyage workflow:`, error);
@@ -2518,7 +2516,7 @@
     // Fonctions d'exécution des steps
     async function executeResupplyStep(fleet) {
         const step = fleet.currentWorkflowStep;
-        cLog(4, `Configuration ravitaillement pour ${fleet.label}:`, step);
+        logger.log(4, `Configuration ravitaillement pour ${fleet.label}:`, step);
 
         try {
             const fleetIndex = slyModule.getUserFleets().findIndex(f => f.publicKey.toBase58() === fleet.publicKey.toBase58());
@@ -2528,7 +2526,7 @@
 
             let fleetSavedData = await GM.getValue(fleet.publicKey.toString(), '{}');
             let fleetParsedData = JSON.parse(fleetSavedData);
-            cLog(4, `Resupplied: ${fleetSavedData.resupplied} moving: ${fleetSavedData.moving}`);
+            logger.log(4, `Resupplied: ${fleetSavedData.resupplied} moving: ${fleetSavedData.moving}`);
 
             if (!fleet.resupplied && !fleet.moving) {
                 let fleetAcctInfo = await getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
@@ -2548,7 +2546,7 @@
                         moveMode = 'warp';
                     }
                     slyModule.getUserFleets()[fleetIndex].moveType = moveMode;
-                    cLog(4, `Move mode set ${slyModule.getUserFleets()[fleetIndex].moveType}`);
+                    logger.log(4, `Move mode set ${slyModule.getUserFleets()[fleetIndex].moveType}`);
 
                     // Définir la destination
                     const destinationName = step.destination || (step.items.length > 0 ? step.items[0].destination : null);
@@ -2565,7 +2563,7 @@
                     const destCoordsStr = targetDestination;
                     const isAtStarbase = validTargets.some(sb => `${sb.x},${sb.y}` === currentCoordsStr);
                     const isAtDestination = currentCoordsStr === destCoordsStr;
-                    cLog(4, `fleet is at destination: ${isAtDestination}, fleet is at starbase: ${isAtStarbase}`);
+                    logger.log(4, `fleet is at destination: ${isAtDestination}, fleet is at starbase: ${isAtStarbase}`);
 
                     // Construire les manifestes si des items sont présents
                     const loadCargoManifest = [];
@@ -2600,7 +2598,7 @@
                             }
                         });
                     } else {
-                        cLog(4, `Aucun item de ravitaillement pour ${fleet.label}, configuration pour déplacement uniquement`);
+                        logger.log(4, `Aucun item de ravitaillement pour ${fleet.label}, configuration pour déplacement uniquement`);
                     }
 
                     // Mettre à jour slyModule.getUserFleets()
@@ -2610,7 +2608,7 @@
                     slyModule.getUserFleets()[fleetIndex].loadCargo = JSON.stringify(loadCargoManifest);
                     slyModule.getUserFleets()[fleetIndex].unloadCargo = JSON.stringify(unloadCargoManifest);
 
-                    cLog(4, `Ravitaillement configuré pour ${fleet.label}:`, {
+                    logger.log(4, `Ravitaillement configuré pour ${fleet.label}:`, {
                         starbase: fleetParsedData.starbase,
                         destination: fleetParsedData.dest,
                         loadCargo: loadCargoManifest,
@@ -2621,12 +2619,12 @@
                     });
 
                     await GM.setValue(fleet.publicKey.toString(), JSON.stringify(slyModule.getUserFleets()[fleetIndex]));
-                    cLog(4, `fleet save data ${await GM.getValue(fleet.publicKey.toString(), '{}')}`);
+                    logger.log(4, `fleet save data ${await GM.getValue(fleet.publicKey.toString(), '{}')}`);
                 }
             }
 
             if (fleet.resupplied && !fleet.moving) {
-                cLog(4, `Fleet ${fleet.label} Ready to move`);
+                logger.log(4, `Fleet ${fleet.label} Ready to move`);
             }
         } catch (error) {
             console.error(`Erreur config ravitaillement ${fleet.label}:`, error);
@@ -2637,7 +2635,7 @@
 
     async function executeMoveStep(fleet) {
         const step = fleet.currentWorkflowStep;
-        cLog(4, `Configuration ravitaillement pour ${fleet.label}:`, step.items);
+        logger.log(4, `Configuration ravitaillement pour ${fleet.label}:`, step.items);
 
         try {
             const fleetIndex = slyModule.getUserFleets().findIndex(f => f.publicKey.toBase58() === fleet.publicKey.toBase58());
@@ -2647,7 +2645,7 @@
             // Sauvegarder l'assignation actuelle
             let fleetSavedData = await GM.getValue(fleet.publicKey.toString(), '{}');
             let fleetParsedData = JSON.parse(fleetSavedData);
-            cLog(4, `Ressuplied : ${fleetSavedData.resupplied} moving : ${fleetSavedData.moving}`)
+            logger.log(4, `Ressuplied : ${fleetSavedData.resupplied} moving : ${fleetSavedData.moving}`)
             if (!fleet.moving) {
                 let fleetAcctInfo = await getAccountInfo(fleet.label, 'diagnostic', fleet.publicKey);
                 updateFleetMiscStats(fleet, fleetAcctInfo);
@@ -2661,7 +2659,7 @@
                         moveMode = 'warp';
                     }
                     slyModule.getUserFleets()[fleetIndex].moveType = moveMode;
-                    cLog(4, `Move mode set ${slyModule.getUserFleets()[fleetIndex].moveType}`);
+                    logger.log(4, `Move mode set ${slyModule.getUserFleets()[fleetIndex].moveType}`);
 
                     const destinationName = step.destination;
                     const sbData = validTargets.find(sb => sb.name === destinationName);
@@ -2673,7 +2671,7 @@
                     const destCoordsStr = targetDestination;
                     const isAtStarbase = validTargets.some(sb => `${sb.x},${sb.y}` === currentCoordsStr);
                     const isAtDestination = currentCoordsStr === destCoordsStr;
-                    cLog(4, `fleet is at destination: ${isAtDestination}, fleet is at starbase: ${isAtStarbase}`);
+                    logger.log(4, `fleet is at destination: ${isAtDestination}, fleet is at starbase: ${isAtStarbase}`);
 
 
                     // Mettre à jour slyModule.getUserFleets()
@@ -2681,7 +2679,7 @@
                     slyModule.getUserFleets()[fleetIndex].destCoord = destCoordsStr;
                     slyModule.getUserFleets()[fleetIndex].startingCoords = [coords[0], coords[1]];
 
-                    cLog(4, `Movement configuré pour ${fleet.label}:`, {
+                    logger.log(4, `Movement configuré pour ${fleet.label}:`, {
                         starbase: fleetParsedData.starbase,
                         destination: fleetParsedData.dest,
                         moveType: moveMode,
@@ -2692,7 +2690,7 @@
 
                     await GM.setValue(fleet.publicKey.toString(), JSON.stringify(slyModule.getUserFleets()[fleetIndex]));
 
-                    cLog(4, `fleet save data ${await GM.getValue(fleet.publicKey.toString(), '{}')}`)
+                    logger.log(4, `fleet save data ${await GM.getValue(fleet.publicKey.toString(), '{}')}`)
                 }
 
             }
@@ -2709,13 +2707,13 @@
     async function executeMineStep(fleet) {
         const step = fleet.currentWorkflowStep;
         const targetStarbase = validTargets.find(sb => sb.name === step.starbase);
-        cLog(4, "Step minage:");
-        cLog(4, targetStarbase);
+        logger.log(4, "Step minage:");
+        logger.log(4, targetStarbase);
         if (!targetStarbase) {
             throw new Error(`Starbase minage invalide: ${step.starbase}`);
         }
 
-        cLog(4, `Configuration minage ${fleet.label}: ${step.resource} à ${step.starbase}`);
+        logger.log(4, `Configuration minage ${fleet.label}: ${step.resource} à ${step.starbase}`);
 
         try {
             const fleetIndex = slyModule.getUserFleets().findIndex(f => f.publicKey.toBase58() === fleet.publicKey.toBase58());
@@ -2737,7 +2735,7 @@
             slyModule.getUserFleets()[fleetIndex].destCoord = `${targetStarbase.x},${targetStarbase.y}`;
             await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleetParsedData));
 
-            cLog(4, `Minage configuré pour ${fleet.label}`);
+            logger.log(4, `Minage configuré pour ${fleet.label}`);
 
         } catch (error) {
             console.error(`Erreur config minage ${fleet.label}:`, error);
@@ -2765,7 +2763,7 @@
         // Si on a atteint la fin, recommencer au début
         if (workflowData.currentStepIndex >= workflowSteps.length) {
             workflowData.currentStepIndex = 0;
-            cLog(4, `Workflow cycle completed for fleet ${fleetKey}, restarting from beginning`);
+            logger.log(4, `Workflow cycle completed for fleet ${fleetKey}, restarting from beginning`);
         }
 
         // Sauvegarder les nouvelles données
@@ -2775,7 +2773,7 @@
         const fleetIndex = slyModule.getUserFleets().findIndex(f => f.publicKey === fleetKey);
 
         if (fleetIndex !== -1) {
-            cLog(4, `Fleet index ${fleetIndex}, restarting from beginning`);
+            logger.log(4, `Fleet index ${fleetIndex}, restarting from beginning`);
             await initializeWorkflowForFleet(slyModule.getUserFleets()[fleetIndex], workflowSteps);
 
             // Rafraîchir la liste des étapes pour mettre à jour l'étape active
@@ -2788,7 +2786,7 @@
                 startWorkflowFleet(fleetIndex);
             }, 2000);
 
-            cLog(4, `Fleet ${slyModule.getUserFleets()[fleetIndex].label} advanced to workflow step ${workflowData.currentStepIndex}`);
+            logger.log(4, `Fleet ${slyModule.getUserFleets()[fleetIndex].label} advanced to workflow step ${workflowData.currentStepIndex}`);
         }
     }
 
@@ -2810,12 +2808,12 @@
 
         if (workflowData.stepRetryCount >= 3) {
             // Après 3 tentatives, passer au step suivant
-            cLog(4, `Max retries reached for fleet ${fleetKey}, skipping to next step. Error: ${error}`);
+            logger.log(4, `Max retries reached for fleet ${fleetKey}, skipping to next step. Error: ${error}`);
             updateFleetState(fleet, `Error: Skipping step`);
             await onWorkflowStepCompleted(fleetKey);
         } else {
             // Réessayer le step actuel après un délai
-            cLog(4, `Retrying workflow step for fleet ${fleetKey} (attempt ${workflowData.stepRetryCount}). Error: ${error}`);
+            logger.log(4, `Retrying workflow step for fleet ${fleetKey} (attempt ${workflowData.stepRetryCount}). Error: ${error}`);
             updateFleetState(fleet, `Error: Retrying (${workflowData.stepRetryCount}/3)`);
             await GM.setValue(workflowDataKey, workflowData);
 
@@ -2864,18 +2862,18 @@
     async function diagnoseWorkflowIssue(fleetKey) {
         const fleet = slyModule.getUserFleets().find(f => f.publicKey.toBase58() === fleetKey);
         if (!fleet) {
-            cLog(4, 'Fleet not found');
+            logger.log(4, 'Fleet not found');
             return;
         }
 
-        cLog(4, '=== DIAGNOSTIC WORKFLOW ===');
-        cLog(4, 'Fleet Label:', fleet.label);
-        cLog(4, 'Fleet State:', fleet.state);
-        cLog(4, 'Current Step:', fleet.currentWorkflowStep);
-        cLog(4, 'Dest Coord:', fleet.destCoord);
-        cLog(4, 'Starbase Coord:', fleet.starbaseCoord);
-        cLog(4, 'Starting Coords:', fleet.startingCoords);
-        cLog(4, 'Step Configured:', fleet.stepConfigured);
+        logger.log(4, '=== DIAGNOSTIC WORKFLOW ===');
+        logger.log(4, 'Fleet Label:', fleet.label);
+        logger.log(4, 'Fleet State:', fleet.state);
+        logger.log(4, 'Current Step:', fleet.currentWorkflowStep);
+        logger.log(4, 'Dest Coord:', fleet.destCoord);
+        logger.log(4, 'Starbase Coord:', fleet.starbaseCoord);
+        logger.log(4, 'Starting Coords:', fleet.startingCoords);
+        logger.log(4, 'Step Configured:', fleet.stepConfigured);
 
         // Vérifier les coordonnées réelles
         try {
@@ -2883,19 +2881,19 @@
             updateFleetMiscStats(fleet, fleetAcctInfo);
             let [fleetState, coords] = getFleetState(fleetAcctInfo, fleet);
 
-            cLog(4, 'Real Fleet State:', fleetState);
-            cLog(4, 'Real Coordinates:', coords);
+            logger.log(4, 'Real Fleet State:', fleetState);
+            logger.log(4, 'Real Coordinates:', coords);
 
             // Vérifier les données workflow
             const workflowDataKey = `workflow_data_${fleetKey}`;
             const workflowData = await GM.getValue(workflowDataKey, {});
-            cLog(4, 'Workflow Data:', workflowData);
+            logger.log(4, 'Workflow Data:', workflowData);
 
         } catch (error) {
             console.error('Error during diagnostic:', error);
         }
 
-        cLog(4, '=== FIN DIAGNOSTIC ===');
+        logger.log(4, '=== FIN DIAGNOSTIC ===');
     }
 
     craftingBtn.addEventListener('click', async () => {
@@ -2962,7 +2960,7 @@
         craftLabels.push(label);
         await GM.setValue('crafting_jobs', craftLabels);
 
-        cLog(4, `Crafting job added: ${JSON.stringify(craftData)}`);
+        logger.log(4, `Crafting job added: ${JSON.stringify(craftData)}`);
         await refreshCraftingJobsList();
     }
 
