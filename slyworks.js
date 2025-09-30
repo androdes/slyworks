@@ -7,7 +7,6 @@
 // @match        https://*.based.staratlas.com/
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/logger.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/utils.js
-// @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/rpc-connection-manager.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/idl/cargoIDL.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/idl/sageIDL.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/idl/pontsIDL.js
@@ -19,6 +18,7 @@
 // @require      https://raw.githubusercontent.com/ImGroovin/SAGE-Lab-Assistant/main/anchor-browserified.js#sha256=f29ef75915bcf59221279f809eefc55074dbebf94cf16c968e783558e7ae3f0a
 // @require      https://raw.githubusercontent.com/ImGroovin/SAGE-Lab-Assistant/main/buffer-browserified.js#sha256=4fa88e735f9f1fdbff85f4f92520e8874f2fec4e882b15633fad28a200693392
 // @require      https://raw.githubusercontent.com/ImGroovin/SAGE-Lab-Assistant/main/bs58-browserified.js#sha256=87095371ec192e5a0e50c6576f327eb02532a7c29f1ed86700a2f8fb5018d947
+// @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/rpc-connection-manager.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/sly-core.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=staratlas.com
 // @grant        GM_setValue
