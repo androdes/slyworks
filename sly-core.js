@@ -226,99 +226,9 @@ var sly = (async function (exports) {
 
     let transactionStats = {"start": (Math.round(Date.now() / 1000)), "groups": {}};
 
-    async function alterStats(group, name, val, unit, precision) {
-        //let stats = JSON.parse(await GM.getValue('statistics', '{}'));
-        let started = new Date(transactionStats.start * 1000);
-        if (!transactionStats.groups[group]) transactionStats.groups[group] = {
-            "TOTAL": {
-                "count": 0,
-                "value": 0,
-                "last": 0,
-                "unit": unit,
-                "precision": precision
-            }
-        };
-        if (name && !transactionStats.groups[group][name]) transactionStats.groups[group][name] = {
-            "count": 0,
-            "value": 0,
-            "last": 0
-        };
-        if (name) {
-            transactionStats.groups[group][name].count += 1;
-            transactionStats.groups[group][name].value += val;
-            transactionStats.groups[group][name].last = val;
-        }
-        transactionStats.groups[group].TOTAL.count += 1;
-        transactionStats.groups[group].TOTAL.value += val;
-        transactionStats.groups[group].TOTAL.last = val;
-
-        // update ui
-        let groups = transactionStats.groups;
-        let content = '<table><tr><td colspan="4">Started: ' + started.toLocaleDateString() + ' ' + started.toLocaleTimeString() + ' / Hours passed: ' + ((Date.now() - started) / 1000 / 60 / 60).toFixed(2) + '</td></tr>';
-        let tempTotalRequests = solanaReadCount + solanaWriteCount;
-        let tempMinsPassed = (Date.now() - started) / 1000 / 60;
-        let tempReqPerMin = (tempTotalRequests / tempMinsPassed).toFixed(2);
-
-        content += '<tr><td colspan="4">RPC Requests: ' + solanaReadCount + ' reads | ' + solanaWriteCount + ' writes | ' + (tempTotalRequests / tempMinsPassed).toFixed(2) + ' per minute | ' + solanaErrorCount + ' errors</td></tr>';
-        for (let group in groups) {
-            content += '<tr style="opacity:0.66"><td>' + group + '</td><td align="right">Count</td><td align="right">Total ' + groups[group].TOTAL.unit + '</td><td align="right">Average ' + groups[group].TOTAL.unit + '</td><td align="right">Last ' + groups[group].TOTAL.unit + '</td></tr>';
-            let precision = +groups[group].TOTAL.precision;
-            for (let item in groups[group]) {
-                let avg = groups[group][item].value / groups[group][item].count;
-                content += '<tr><td>' + item + '</td><td align="right">' + groups[group][item].count + '</td><td align="right">' + groups[group][item].value.toFixed(precision) + '</td><td align="right">' + avg.toFixed(precision) + '</td><td align="right">' + groups[group][item].last.toFixed(precision) + '</td></tr>';
-            }
-        }
-        content += '</table>';
-        document.querySelector('#assistStatsContent').innerHTML = content;
-    }
-
-    //statsadd end
 
     //autofee
-    async function alterFees(seconds, opName) {
-        if ((!globalSettings.craftingTxAffectsAutoFee) && (opName.includes('CRAFT') || opName.includes('UPGRADE'))) return;
-        const proportionFee = (globalSettings.automaticFeeMax <= globalSettings.automaticFeeMin) ? 1 : (currentFee - globalSettings.automaticFeeMin) / (globalSettings.automaticFeeMax - globalSettings.automaticFeeMin);
-        let thresholdTime = (globalSettings.automaticFeeTimeMax - globalSettings.automaticFeeTimeMin) * proportionFee + globalSettings.automaticFeeTimeMin;
-        if (thresholdTime < globalSettings.automaticFeeTimeMin) {
-            thresholdTime = globalSettings.automaticFeeTimeMin;
-        }
-        if (thresholdTime > globalSettings.automaticFeeTimeMax) {
-            thresholdTime = globalSettings.automaticFeeTimeMax;
-        }
-        let change = 0;
-        if (globalSettings.automaticFee) {
-            if (seconds == -1) {
-                // tx was resent. We need to adapt fast, so use max fee increase here
-                change = globalSettings.automaticFeeStep;
-            } else {
-                if (seconds < thresholdTime) {
-                    let factor = (thresholdTime - seconds) / (globalSettings.automaticFeeTimeMax - globalSettings.automaticFeeTimeMin);
-                    if (factor > 1) {
-                        factor = 1;
-                    }
-                    change = Math.round(factor * globalSettings.automaticFeeStep * -1);
-                } else {
-                    let factor = (seconds - thresholdTime) / (globalSettings.automaticFeeTimeMax - globalSettings.automaticFeeTimeMin);
-                    if (factor > 1) {
-                        factor = 1;
-                    }
-                    change = Math.round(factor * globalSettings.automaticFeeStep);
-                }
-            }
-            currentFee += change;
-            if (currentFee < globalSettings.automaticFeeMin) {
-                currentFee = globalSettings.automaticFeeMin;
-            }
-            if (currentFee > globalSettings.automaticFeeMax) {
-                currentFee = globalSettings.automaticFeeMax;
-            }
-        } else {
-            currentFee = globalSettings.priorityFee;
-        }
-        cLog(3, `Fee change data: Seconds `, seconds, `, thresholdTime `, thresholdTime, `, change `, change, `, new fee: `, currentFee);
 
-        document.getElementById('assist-modal-fee').innerHTML = 'Fee:' + currentFee;
-    }
 
     console.log("============>SAWORK<========================");
 
@@ -373,7 +283,7 @@ var sly = (async function (exports) {
         return result;
     }
 
-    console.log(" Loading cargo types ");
+
 
     const cargoTypes = await cargoProgram.account.cargoType.all([
         {
@@ -6605,10 +6515,18 @@ var sly = (async function (exports) {
         });
     }
 
-    exports.initUser = initUser;
-    exports.userFleets = userFleets;
-    exports.updateFleetState = updateFleetState;
+    function isInitComplete(){
+        return initComplete;
+    }
 
+    function getUserFleets(){
+        return userFleets;
+    }
+
+    exports.initUser = initUser;
+    exports.getUserFleets = getUserFleets;
+    exports.updateFleetState = updateFleetState;
+    exports.isInitComplete = isInitComplete;
     return exports;
 
 
