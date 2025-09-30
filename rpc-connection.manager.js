@@ -4,7 +4,7 @@ var rpc = (function (exports) {
             this.saRPCs = [
                 'https://rpc.ironforge.network/mainnet?apiKey=01JEEEQP3FTZJFCP5RCCKB2NSQ',
             ];
-
+//
             this.readRPCs = customReadRPCs.concat(this.saRPCs);
             this.writeRPCs = customWriteRPCs.concat(this.saRPCs);
 
