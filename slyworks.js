@@ -6,6 +6,8 @@
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/logger.js
+// @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/utils.js
+// @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/rpc-connection-manager.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/idl/cargoIDL.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/idl/sageIDL.js
 // @require      https://raw.githubusercontent.com/androdes/slyworks/refs/heads/master/idl/pontsIDL.js
