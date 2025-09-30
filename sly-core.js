@@ -3781,7 +3781,7 @@ var sly = (async function (exports) {
             let timeLimit = Math.min(timeFoodRemaining, timeAmmoRemaining, timeCargoRemaining);
             let mineEnd = Date.now() + (timeLimit * 1000);
             userFleets[i].mineEnd = mineEnd;
-            updateFleetState(userFleets[i], 'Mine [' + utils.TimeToStr(new Date(mineEnd)) + ']')
+            updateFleetState(userFleets[i], 'Mine [' + utils.TimeToStr(new Date(mineEnd)) + ']');//
             let sageResourceAcctInfo = await sageProgram.account.resource.fetch(fleetMining.resource);
             let mineItem = await sageProgram.account.mineItem.fetch(sageResourceAcctInfo.mineItem);
             if (Date.now() > (mineEnd)) {
