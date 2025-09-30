@@ -39,16 +39,12 @@ var sly = (async function (exports) {
         new solanaWeb3.PublicKey('AyC4m8fYEgR9mYcf6zzajevPjF8QhptY9Nae5LX6xgiu'),
         new solanaWeb3.PublicKey('F4jZvnU9fdi2mGp13TyewdAj96cKGUcwBBSMTsL1nRoC')
     ];
-
     //Token addresses
     const programAddy = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL';
     const tokenProgAddy = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-
     //Commonly used public keys
     const programPK = new solanaWeb3.PublicKey(programAddy);
     const tokenProgramPK = new solanaWeb3.PublicKey(tokenProgAddy);
-
-    let enableAssistant = false;
     let initComplete = false;
     
     let globalErrorTracker = {'firstErrorTime': 0, 'errorCount': 0};
@@ -5085,7 +5081,6 @@ var sly = (async function (exports) {
 
     async function startFleet(i) {
         //Bail if assistant is stopped
-        if (!enableAssistant) return;
 
         let extraTime = 0;
         const fleet = userFleets[i];
@@ -5282,7 +5277,6 @@ var sly = (async function (exports) {
 
 
     async function startCraft(userCraft) {
-        if (!enableAssistant) return;
         let localTimeout = 60000;
         try {
             const EMPTY_CRAFTING_SPEED_PER_TIER = [0, .2, .275, .35, .425, .5, .5];
@@ -5503,7 +5497,7 @@ var sly = (async function (exports) {
 
                 let targetRecipe = getTargetRecipe(starbasePlayerCargoHoldsAndTokens, userCraft, Number(userCraft.amount), (userCraft.special ? userCraft.special : ''));
 
-                if (!enableAssistant) return;
+
 
                 logger.log(3, utils.FleetTimeStamp(userCraft.label), 'targetRecipe: ', targetRecipe);
                 logger.log(3, utils.FleetTimeStamp(userCraft.label), 'starbasePlayerInfo: ', starbasePlayerInfo);
