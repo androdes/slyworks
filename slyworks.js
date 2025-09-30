@@ -2231,7 +2231,9 @@
         setTimeout(workflowHealthCheck, 60000);
     }
 
+    let tokenCheckCounter;
     async function tokenCheck() {
+
         if ((tokenCheckCounter % 10) === 0) { // check token balance every 100 seconds
             logger.log(1, 'Checking SOL and Atlas balance');
             const solBalance = await solanaReadConnection.getBalance(userPublicKey);
