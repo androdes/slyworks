@@ -130,7 +130,7 @@ var rpc = (function (exports) {
         async localGetEpochInfo(fleet) {
             const cachedValueExpires = 15000, useBlockTime = 450;
             let curTimestamp = Date.now(), localBlockHeight = 0, loopCounter = 0;
-            // if another async call is already requesting the current blocktime, we wait for the result, but max 2.5 seconds (= 20 * 125ms)
+            // if another async call is already requesting the current blocktime, we wait for the result, but max 2.5 seconds (= 20 * 125ms)//
             while (this.cachedEpochInfo.isUpdating && (curTimestamp - this.cachedEpochInfo.lastUpdated) > cachedValueExpires && loopCounter < 20) {
                 await wait(125);
                 loopCounter++;
