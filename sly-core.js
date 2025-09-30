@@ -6606,6 +6606,8 @@ var sly = (async function (exports) {
     }
 
     exports.initUser = initUser;
+    exports.userFleets = userFleets;
+    exports.updateFleetState = updateFleetState;
 
     return exports;
 
