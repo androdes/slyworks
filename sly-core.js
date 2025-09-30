@@ -3121,7 +3121,7 @@ var sly = (async function (exports) {
     function updateFleetState(fleet, newState, overrideError) {
         if ((typeof fleet.state == 'undefined') || !fleet.state.includes('ERROR') || overrideError) {
             fleet.state = newState;
-            updateWorkflowList();
+
             // Vérifier si l'ancien système d'interface existe
             const assistStatusElement = document.querySelector('#assistStatus');
             if (assistStatusElement) {

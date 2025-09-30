@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.15
+// @version      0.0.16
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
@@ -1126,7 +1126,8 @@
             await cleanupWorkflowStep(fleet);
 
             // Réinitialiser l'état de la flotte
-            updateFleetState(fleet, 'Idle');
+            slyModule.updateFleetState(fleet, 'Idle');
+            await updateWorkflowList();
             fleet.stepConfigured = false;
 
             // Réinitialiser avec la nouvelle étape
@@ -1176,7 +1177,8 @@
             await cleanupWorkflowStep(fleet);
 
             // Réinitialiser l'état de la flotte
-            updateFleetState(fleet, 'Idle');
+            slyModule.updateFleetState(fleet, 'Idle');
+            await updateWorkflowList();
             fleet.stepConfigured = false;
 
             // Stopper le workflow temporairement
@@ -1702,7 +1704,8 @@
 
         const fleet = slyModule.getUserFleets().find(f => f.publicKey.toBase58() === fleetKey);
         if (fleet) {
-            updateFleetState(fleet, 'Workflow Paused');
+            slyModule.updateFleetState(fleet, 'Workflow Paused');
+            await updateWorkflowList();
             console.log(`Fleet state updated to: ${fleet.state} at ${Date.now()}`);
         }
     }
@@ -1714,7 +1717,8 @@
         // Marquer la flotte comme arrêtée
         const fleet = slyModule.getUserFleets().find(f => f.publicKey.toBase58() === fleetKey);
         if (fleet) {
-            updateFleetState(fleet, 'Workflow Stopped');
+            slyModule.updateFleetState(fleet, 'Workflow Stopped');
+            await updateWorkflowList();
         }
     }
 
@@ -1807,7 +1811,8 @@
         });
 
         // Reset de l'état de la flotte
-        updateFleetState(fleet, 'Idle');
+        slyModule.updateFleetState(fleet, 'Idle');
+        await updateWorkflowList();
 
         logger.log(4, `Emergency reset completed for ${fleet.label}`);
     }
@@ -2408,7 +2413,8 @@
                         fleet.destCoord = currentCoordsStr;
                         fleet.starbaseCoord = currentCoordsStr;
                         fleet.startingCoords = [extra[0], extra[1]];
-                        updateFleetState(fleet, 'Idle');
+                        slyModule.updateFleetState(fleet, 'Idle');
+                        await updateWorkflowList();
                         logger.log(4, `Coordonnées corrigées: ${currentCoordsStr}`);
                         return false;
                     }
@@ -2809,12 +2815,14 @@
         if (workflowData.stepRetryCount >= 3) {
             // Après 3 tentatives, passer au step suivant
             logger.log(4, `Max retries reached for fleet ${fleetKey}, skipping to next step. Error: ${error}`);
-            updateFleetState(fleet, `Error: Skipping step`);
+            slyModule.updateFleetState(fleet, `Error: Skipping step`);
+            await updateWorkflowList();
             await onWorkflowStepCompleted(fleetKey);
         } else {
             // Réessayer le step actuel après un délai
             logger.log(4, `Retrying workflow step for fleet ${fleetKey} (attempt ${workflowData.stepRetryCount}). Error: ${error}`);
-            updateFleetState(fleet, `Error: Retrying (${workflowData.stepRetryCount}/3)`);
+            slyModule.updateFleetState(fleet, `Error: Retrying (${workflowData.stepRetryCount}/3)`);
+            await updateWorkflowList();
             await GM.setValue(workflowDataKey, workflowData);
 
             // Attendre avant de réessayer (délai exponentiel)
