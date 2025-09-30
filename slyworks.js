@@ -2359,7 +2359,7 @@
                 }
 
                 // Appeler operateFleet qui va travailler avec la configuration
-                await operateFleet(fleetIndex);
+                await slyModule.operateFleet(fleetIndex);
 
                 // Vérifier si l'étape est terminée
                 if (await checkStepCompletion(fleetIndex)) {

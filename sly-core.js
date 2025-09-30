@@ -5903,6 +5903,8 @@ var sly = (async function (exports) {
     exports.getUserFleets = getUserFleets;
     exports.updateFleetState = updateFleetState;
     exports.isInitComplete = isInitComplete;
+    exports.getFleetState = getFleetState;
+    exports.operateFleet = operateFleet;
     return exports;
 
 
