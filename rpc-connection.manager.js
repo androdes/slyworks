@@ -1,4 +1,3 @@
-/* global solanaWeb3, logger, utils */
 var rpc = (function (exports) {
     class RPCConnectionManager {
         constructor(customReadRPCs = [], customWriteRPCs = []) {
@@ -202,6 +201,5 @@ var rpc = (function (exports) {
     }
 
 
-    exports = new RPCConnectionManager();
-    return exports;
+    return new RPCConnectionManager();
 })({});
