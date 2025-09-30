@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.6
+// @version      0.0.9
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
