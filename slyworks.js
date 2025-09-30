@@ -1950,7 +1950,7 @@
 
         const destinationSelect = destinationContainer.querySelector('.resupply-destination');
         const destination = step.destination || (step.items.length > 0 ? step.items[0].destination : '');
-        destinationSelect.innerHTML = validTargets.map(dest =>
+        destinationSelect.innerHTML = slyModule.getValidTargets().map(dest =>
             `<option value="${dest.name}" ${dest.name === destination ? 'selected' : ''}>${dest.name}</option>`
         ).join('');
 
@@ -2022,7 +2022,7 @@
     });
 
     function addMoveDestinations() {
-        moveDestination.innerHTML = validTargets.map(starbase => `<option value="${starbase.name}">${starbase.name}</option>`).join('');
+        moveDestination.innerHTML = slyModule.getValidTargets().map(starbase => `<option value="${starbase.name}">${starbase.name}</option>`).join('');
     }
 
     moveBtn.addEventListener('click', () => {
@@ -2079,7 +2079,7 @@
                 <div class="resupply-note">Note : Vous pouvez sauvegarder sans ajouter de ressources pour effectuer uniquement un déplacement.</div>
             `;
             const destinationSelect = destinationContainer.querySelector('.resupply-destination');
-            destinationSelect.innerHTML = validTargets.map(destination =>
+            destinationSelect.innerHTML = slyModule.getValidTargets().map(destination =>
                 `<option value="${destination.name}">${destination.name}</option>`
             ).join('');
             const moveModeSelect = destinationContainer.querySelector('.resupply-move-mode');
@@ -2129,7 +2129,7 @@
     }
 
     function addMineTargets() {
-        mineStarbase.innerHTML = validTargets.map(starbase => `<option value="${starbase.name}">${starbase.name}</option>`).join('');
+        mineStarbase.innerHTML = slyModule.getValidTargets().map(starbase => `<option value="${starbase.name}">${starbase.name}</option>`).join('');
     }
 
 
@@ -2423,7 +2423,7 @@
                         console.error(`Aucune destination définie pour l'étape resupply de ${fleet.label}`);
                         return false;
                     }
-                    const destination = validTargets.find(sb => sb.name === destinationName);
+                    const destination = slyModule.getValidTargets().find(sb => sb.name === destinationName);
                     if (!destination) {
                         console.error(`Destination invalide '${destinationName}' pour ${fleet.label}`);
                         return false;
@@ -2438,7 +2438,7 @@
                     return isAtDestination;
 
                 case 'move':
-                    const destinationMove = validTargets.find(sb => sb.name === fleet.currentWorkflowStep.destination);
+                    const destinationMove = slyModule.getValidTargets().find(sb => sb.name === fleet.currentWorkflowStep.destination);
                     if (!destinationMove) {
                         console.error(`Destination invalide '${fleet.currentWorkflowStep.destination}' pour ${fleet.label}`);
                         return false;
@@ -2553,15 +2553,15 @@
                     if (!destinationName) {
                         throw new Error(`Aucune destination définie pour ${fleet.label}`);
                     }
-                    const sbData = validTargets.find(sb => sb.name === destinationName);
+                    const sbData = slyModule.getValidTargets().find(sb => sb.name === destinationName);
                     if (!sbData) {
-                        throw new Error(`Destination invalide '${destinationName}' pour ${fleet.label}. Vérifiez validTargets.`);
+                        throw new Error(`Destination invalide '${destinationName}' pour ${fleet.label}. Vérifiez slyModule.getValidTargets().`);
                     }
                     const targetDestination = `${sbData.x},${sbData.y}`;
 
                     const currentCoordsStr = `${coords[0]},${coords[1]}`;
                     const destCoordsStr = targetDestination;
-                    const isAtStarbase = validTargets.some(sb => `${sb.x},${sb.y}` === currentCoordsStr);
+                    const isAtStarbase = slyModule.getValidTargets().some(sb => `${sb.x},${sb.y}` === currentCoordsStr);
                     const isAtDestination = currentCoordsStr === destCoordsStr;
                     logger.log(4, `fleet is at destination: ${isAtDestination}, fleet is at starbase: ${isAtStarbase}`);
 
@@ -2662,14 +2662,14 @@
                     logger.log(4, `Move mode set ${slyModule.getUserFleets()[fleetIndex].moveType}`);
 
                     const destinationName = step.destination;
-                    const sbData = validTargets.find(sb => sb.name === destinationName);
+                    const sbData = slyModule.getslyModule.getValidTargets()().find(sb => sb.name === destinationName);
                     if (!sbData) {
-                        throw new Error(`Destination invalide '${destinationName}' pour ${fleet.label}. Vérifiez validTargets.`);
+                        throw new Error(`Destination invalide '${destinationName}' pour ${fleet.label}. Vérifiez slyModule.getValidTargets().`);
                     }
                     const targetDestination = `${sbData.x},${sbData.y}`;
                     const currentCoordsStr = `${coords[0]},${coords[1]}`;
                     const destCoordsStr = targetDestination;
-                    const isAtStarbase = validTargets.some(sb => `${sb.x},${sb.y}` === currentCoordsStr);
+                    const isAtStarbase = slyModule.getValidTargets().some(sb => `${sb.x},${sb.y}` === currentCoordsStr);
                     const isAtDestination = currentCoordsStr === destCoordsStr;
                     logger.log(4, `fleet is at destination: ${isAtDestination}, fleet is at starbase: ${isAtStarbase}`);
 
@@ -2706,7 +2706,7 @@
 
     async function executeMineStep(fleet) {
         const step = fleet.currentWorkflowStep;
-        const targetStarbase = validTargets.find(sb => sb.name === step.starbase);
+        const targetStarbase = slyModule.getValidTargets().find(sb => sb.name === step.starbase);
         logger.log(4, "Step minage:");
         logger.log(4, targetStarbase);
         if (!targetStarbase) {
@@ -2902,7 +2902,7 @@
             return;
         }
         updateView('crafting-view');
-        craftingResource.innerHTML = craftableItems.map(item => {
+        craftingResource.innerHTML = slyModule.getCraftableItems.map(item => {
             const name = new TextDecoder().decode(new Uint8Array(item.account.namespace)).replace(/\0/g, '');
             return `<option value="${name}">${name}</option>`;
         }).join('');
@@ -2912,7 +2912,7 @@
 
     // Ajout des options pour le menu déroulant de starbase
     function addCraftingTargets() {
-        craftingStarbase.innerHTML = validTargets.map(starbase => `<option value="${starbase.name}">${starbase.name}</option>`).join('');
+        craftingStarbase.innerHTML = slyModule.getValidTargets().map(starbase => `<option value="${starbase.name}">${starbase.name}</option>`).join('');
     }
 
     // Ajout d'une tâche de crafting
@@ -2927,7 +2927,7 @@
             return;
         }
 
-        const starbaseData = validTargets.find(sb => sb.name === starbaseName);
+        const starbaseData = slyModule.getValidTargets().find(sb => sb.name === starbaseName);
         if (!starbaseData) {
             alert('Invalid starbase selected.');
             return;

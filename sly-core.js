@@ -5865,6 +5865,14 @@ var sly = (async function (exports) {
         return userFleets;
     }
 
+    function getValidTargets(){
+        return validTargets;
+    }
+
+    function getCraftableItems(){
+        return craftableItems;
+    }
+
     exports.initUser = initUser;
     exports.getUserFleets = getUserFleets;
     exports.updateFleetState = updateFleetState;
@@ -5875,6 +5883,8 @@ var sly = (async function (exports) {
     exports.updateAssistStatus = updateAssistStatus;
     exports.getAccountInfo = getAccountInfo;
     exports.updateFleetMiscStats= updateFleetMiscStats;
+    exports.getValidTargets = getValidTargets;
+    exports.getCraftableItems = getCraftableItems;
     return exports;
 
 
