@@ -5872,6 +5872,7 @@ var sly = (async function (exports) {
     exports.getFleetState = getFleetState;
     exports.operateFleet = operateFleet;
     exports.startCraft = startCraft;
+    exports.updateAssistStatus = updateAssistStatus;
     return exports;
 
 
