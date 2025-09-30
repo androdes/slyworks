@@ -990,42 +990,8 @@ var sly = (async function (exports) {
         return token;
     }
 
-    // localGetEpochInfo caches the last block height and estimates the current block height if the cached value has been requested recently.
-
-
-
-
-    // The handler processes the queue and calls the corresponding callbacks with the result
-    async function signatureStatusHandler() {
-        const currentHashes = signatureStatusQueue.splice(0, signatureStatusQueue.length);
-        if (currentHashes.length > 0) {
-
-            const txHashes = currentHashes.map(req => req.txHash);
-            logger.log(3, `Requesting`, currentHashes.length, `signature statuses at once`);
-
-            try {
-                const signatureStatuses = await rpc.getReadConnection().getSignatureStatuses(txHashes);
-                //logger.log(3,`Got signature results:`, signatureStatuses);
-                for (let i = 0; i < currentHashes.length; i++) {
-                    const {resolve} = currentHashes[i];
-                    const signatureStatus = {value: signatureStatuses.value[i]};
-                    resolve(signatureStatus);
-                }
-            } catch (error) {
-                // If something goes wrong, we reject each request. If a promise of the queue was already resolved in the "try" block, the reject does (correctly) nothing and won't throw an error
-                logger.logError('Error: Rejecting all signature checks - ' + error);
-                for (const req of currentHashes) {
-                    req.reject(err);
-                }
-            }
-        }
-        setTimeout(() => {
-            signatureStatusHandler();
-        }, Math.max(2000, globalSettings.confirmationCheckingDelay));
-    }
-
     setTimeout(() => {
-        signatureStatusHandler();
+        rpc.signatureStatusHandler();
     }, Math.max(2000, globalSettings.confirmationCheckingDelay));
 
 
@@ -5905,6 +5871,7 @@ var sly = (async function (exports) {
     exports.isInitComplete = isInitComplete;
     exports.getFleetState = getFleetState;
     exports.operateFleet = operateFleet;
+    exports.startCraft = startCraft;
     return exports;
 
 

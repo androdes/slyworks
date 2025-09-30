@@ -1,6 +1,6 @@
 var rpc = (function (exports) {
     class RPCConnectionManager {
-        constructor(customReadRPCs = [], customWriteRPCs = []) {
+        constructor(customReadRPCs = [], customWriteRPCs = [], confirmationCheckingDelay = 2000) {
             this.saRPCs = [
                 'https://rpc.ironforge.network/mainnet?apiKey=01JEEEQP3FTZJFCP5RCCKB2NSQ',
             ];
@@ -16,6 +16,7 @@ var rpc = (function (exports) {
             this.writeConnection = null;
             this.cachedEpochInfo = {'blockHeight': 0, 'lastUpdated': 0, 'isUpdating': false};
             this.signatureStatusQueue = [];
+            this.confirmationCheckingDelay = confirmationCheckingDelay;
             this.initConnections();
         }
 
@@ -196,6 +197,34 @@ var rpc = (function (exports) {
             return new Promise((resolve, reject) => {
                 this.signatureStatusQueue.push({txHash, resolve, reject});
             });
+        }
+
+        async signatureStatusHandler() {
+            const currentHashes = this.signatureStatusQueue.splice(0, signatureStatusQueue.length);
+            if (currentHashes.length > 0) {
+
+                const txHashes = currentHashes.map(req => req.txHash);
+                logger.log(3, `Requesting`, currentHashes.length, `signature statuses at once`);
+
+                try {
+                    const signatureStatuses = await this.readConnection.getSignatureStatuses(txHashes);
+                    //logger.log(3,`Got signature results:`, signatureStatuses);
+                    for (let i = 0; i < currentHashes.length; i++) {
+                        const {resolve} = currentHashes[i];
+                        const signatureStatus = {value: signatureStatuses.value[i]};
+                        resolve(signatureStatus);
+                    }
+                } catch (error) {
+                    // If something goes wrong, we reject each request. If a promise of the queue was already resolved in the "try" block, the reject does (correctly) nothing and won't throw an error
+                    logger.logError('Error: Rejecting all signature checks - ' + error);
+                    for (const req of currentHashes) {
+                        req.reject(err);
+                    }
+                }
+            }
+            setTimeout(() => {
+                this.signatureStatusHandler();
+            }, Math.max(2000, this.confirmationCheckingDelay));
         }
 
     }
