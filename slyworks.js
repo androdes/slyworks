@@ -2213,7 +2213,7 @@
     });
 
     async function workflowHealthCheck() {
-        if (!enableAssistant) return;
+
 
         for (let i = 0, n = slyModule.getUserFleets().length; i < n; i++) {
             const fleet = slyModule.getUserFleets()[i];
@@ -2228,13 +2228,11 @@
             }
         }
 
-        if (enableAssistant) setTimeout(workflowHealthCheck, 60000);
+        setTimeout(workflowHealthCheck, 60000);
     }
 
     async function tokenCheck() {
-        if (!enableAssistant) return;
-
-        if ((tokenCheckCounter % 10) == 0) { // check token balance every 100 seconds
+        if ((tokenCheckCounter % 10) === 0) { // check token balance every 100 seconds
             logger.log(1, 'Checking SOL and Atlas balance');
             const solBalance = await solanaReadConnection.getBalance(userPublicKey);
             const atlasBalance = await solanaReadConnection.getParsedTokenAccountsByOwner(userPublicKey, {mint: new solanaWeb3.PublicKey('ATLASXmbPQxBUYbxPsV97usA3fPQYEqzQBUHgiFCUsXx')});
@@ -2242,7 +2240,7 @@
         }
         tokenCheckCounter++;
 
-        if (enableAssistant) setTimeout(tokenCheck, 10000);
+        setTimeout(tokenCheck, 10000);
     }
 
     // Mise à jour de startAssistant pour inclure les tâches de crafting
@@ -2314,8 +2312,6 @@
 
     // Nouvelle fonction pour démarrer une flotte en mode workflow
     async function startWorkflowFleet(fleetIndex) {
-        if (!enableAssistant) return;
-
         let extraTime = 0;
         const fleet = slyModule.getUserFleets()[fleetIndex];
         if (fleet.iterCnt < 2) {
