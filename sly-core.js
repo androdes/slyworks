@@ -1193,7 +1193,7 @@ var sly = (async function (exports) {
 
             let txResult = await txSignAndSend(tx, fleet, 'SUBWARP', 10);
 
-            const travelEndTime = TimeToStr(new Date(Date.now() + (moveTime * 1000)));
+            const travelEndTime = utils.TimeToStr(new Date(Date.now() + (moveTime * 1000)));
             const newFleetState = `Subwarp ${coordStr} ${travelEndTime}`;
             updateFleetState(fleet, newFleetState);
 
@@ -1350,7 +1350,7 @@ var sly = (async function (exports) {
 
             let txResult = await txSignAndSend(tx, fleet, 'WARP', 100);
 
-            const travelEndTime = TimeToStr(new Date(Date.now() + (moveTime * 1000 + 10000)));
+            const travelEndTime = utils.TimeToStr(new Date(Date.now() + (moveTime * 1000 + 10000)));
             const newFleetState = `Warp ${coordStr} ${travelEndTime}`;
             updateFleetState(fleet, newFleetState);
 
@@ -3282,7 +3282,7 @@ var sly = (async function (exports) {
                     //Wait for cooldown
                     while (Date.now() < warpCooldownExpiresAt) {
                         if (!userFleets[i].state.includes('Warp C/D')) {
-                            const warpCDExpireTimeStr = `[${TimeToStr(new Date(warpCooldownExpiresAt))}]`;
+                            const warpCDExpireTimeStr = `[${utils.TimeToStr(new Date(warpCooldownExpiresAt))}]`;
                             logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Awaiting Warp C/D ${warpCDExpireTimeStr}`);
                             updateFleetState(userFleets[i], `Warp C/D ${warpCDExpireTimeStr}`);
                         }
@@ -3345,8 +3345,8 @@ var sly = (async function (exports) {
         let endTime = warpFinish > subwarpFinish ? warpFinish : subwarpFinish;
 
         const calcEndTime = Date.now() + moveTime * 1000;
-        logger.log(3, `${utils.FleetTimeStamp(userFleets[i].label)} Expected arrival (chain): ${TimeToStr(new Date(endTime))}`);
-        logger.log(3, `${utils.FleetTimeStamp(userFleets[i].label)} Expected arrival (calc): ${TimeToStr(new Date(calcEndTime))}`);
+        logger.log(3, `${utils.FleetTimeStamp(userFleets[i].label)} Expected arrival (chain): ${utils.TimeToStr(new Date(endTime))}`);
+        logger.log(3, `${utils.FleetTimeStamp(userFleets[i].label)} Expected arrival (calc): ${utils.TimeToStr(new Date(calcEndTime))}`);
 
         //Sometimes the chain returns null, use calculated time as fallback
         if (!endTime) endTime = calcEndTime;
@@ -3354,7 +3354,7 @@ var sly = (async function (exports) {
         userFleets[i].moveEnd = endTime;
         await wait(moveTime * 1000);
         while (endTime > Date.now()) {
-            const newFleetState = 'Move [' + TimeToStr(new Date(endTime)) + ']';
+            const newFleetState = 'Move [' + utils.TimeToStr(new Date(endTime)) + ']';
             updateFleetState(userFleets[i], newFleetState);
             await wait(Math.max(1000, endTime - Date.now()));
         }
@@ -3738,7 +3738,7 @@ var sly = (async function (exports) {
                 currentFoodCnt = currentFood ? currentFood.account.data.parsed.info.tokenAmount.uiAmount : 0;
                 miningDuration = calculateMiningDuration(userFleets[i].cargoCapacity - cargoCnt + currentFoodCnt, userFleets[i].miningRate, resourceHardness, systemRichness);
                 await execStartMining(userFleets[i], mineItem, sageResource, planet);
-                if (userFleets[i].state.slice(0, 5) !== 'ERROR') updateFleetState(userFleets[i], 'Mine [' + TimeToStr(new Date(Date.now() + (miningDuration * 1000))) + ']')
+                if (userFleets[i].state.slice(0, 5) !== 'ERROR') updateFleetState(userFleets[i], 'Mine [' + utils.TimeToStr(new Date(Date.now() + (miningDuration * 1000))) + ']')
 
                 //Wait for data to propagate through the RPCs
                 await wait(20000);
@@ -3781,7 +3781,7 @@ var sly = (async function (exports) {
             let timeLimit = Math.min(timeFoodRemaining, timeAmmoRemaining, timeCargoRemaining);
             let mineEnd = Date.now() + (timeLimit * 1000);
             userFleets[i].mineEnd = mineEnd;
-            updateFleetState(userFleets[i], 'Mine [' + TimeToStr(new Date(mineEnd)) + ']')
+            updateFleetState(userFleets[i], 'Mine [' + utils.TimeToStr(new Date(mineEnd)) + ']')
             let sageResourceAcctInfo = await sageProgram.account.resource.fetch(fleetMining.resource);
             let mineItem = await sageProgram.account.mineItem.fetch(sageResourceAcctInfo.mineItem);
             if (Date.now() > (mineEnd)) {
@@ -5066,7 +5066,7 @@ var sly = (async function (exports) {
                     }
                     if (fleetState === 'MineAsteroid' && !userFleets[i].state.includes('Mine')) {
                         logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Fleet State Mismatch - Updating to Mining again`);
-                        updateFleetState(userFleets[i], 'Mine [' + TimeToStr(new Date(Date.now())) + ']');
+                        updateFleetState(userFleets[i], 'Mine [' + utils.TimeToStr(new Date(Date.now())) + ']');
                     }
                 }
                 await handleMining(i, userFleets[i].state, fleetCoords, fleetMining);
@@ -5390,8 +5390,8 @@ var sly = (async function (exports) {
                                 let calcEndTime = Math.max(craftingProcess.account.endTime.toNumber() - craftTime.starbaseTime, 0);
                                 let adjustedEndTime = craftTime.resRemaining > 0 ? calcEndTime : (calcEndTime) / EMPTY_CRAFTING_SPEED_PER_TIER[starbase.account.level];
                                 //let adjustedEndTime = (calcEndTime) / EMPTY_CRAFTING_SPEED_PER_TIER[starbase.account.level];
-                                //let craftTimeStr = 'Crafting [' + TimeToStr(new Date(Date.now() + adjustedEndTime * 1000)) + ']';
-                                let craftTimeStr = "&#9874; " + craftRecipe.name + (userCraft.item != craftRecipe.name ? ' (' + userCraft.item + ')' : '') + ' [' + TimeToStr(new Date(Date.now() + adjustedEndTime * 1000)) + ']';
+                                //let craftTimeStr = 'Crafting [' + utils.TimeToStr(new Date(Date.now() + adjustedEndTime * 1000)) + ']';
+                                let craftTimeStr = "&#9874; " + craftRecipe.name + (userCraft.item != craftRecipe.name ? ' (' + userCraft.item + ')' : '') + ' [' + utils.TimeToStr(new Date(Date.now() + adjustedEndTime * 1000)) + ']';
                                 updateFleetState(userCraft, craftTimeStr);
                                 await updateCraft(userCraft);
                                 //update less frequently if we have a long-running crafting task (3 minutes if remaining time >12 minutes, 2 minutes if remaining time >8 minutes), update faster if <60 seconds left
@@ -5411,7 +5411,7 @@ var sly = (async function (exports) {
                                 });
                             } else if (userCraft.craftingId && craftingProcess.account.craftingId.toNumber() == userCraft.craftingId) {
                                 let upgradeTimeDiff = Math.max(craftingProcess.account.endTime.toNumber() - upgradeTime.starbaseTime, 0);
-                                let upgradeTimeStr = upgradeTime.resRemaining > 0 ? 'Upgrading [' + TimeToStr(new Date(Date.now() + upgradeTimeDiff * 1000)) + ']' : 'Paused [' + parseInt(upgradeTimeDiff / 60) + 'm remaining]';
+                                let upgradeTimeStr = upgradeTime.resRemaining > 0 ? 'Upgrading [' + utils.TimeToStr(new Date(Date.now() + upgradeTimeDiff * 1000)) + ']' : 'Paused [' + parseInt(upgradeTimeDiff / 60) + 'm remaining]';
                                 updateFleetState(userCraft, upgradeTimeStr);
                                 await updateCraft(userCraft);
                             }
@@ -5557,10 +5557,10 @@ var sly = (async function (exports) {
                         if (!userCraft.state.includes('ERROR')) {
                             activityInfo = activityType == 'Crafting' ? "&#9874; " + targetRecipe.craftRecipe.name + (userCraft.item != targetRecipe.craftRecipe.name ? ' (' + userCraft.item + ')' : '') : 'Upgrading';
                             let craftDuration = (targetRecipe.craftRecipe.duration * craftAmount) / userCraft.crew;
-                            let calcEndTime = TimeToStr(new Date(Date.now() + craftDuration * 1000));
+                            let calcEndTime = utils.TimeToStr(new Date(Date.now() + craftDuration * 1000));
                             let upgradeTimeStr = upgradeTime.resRemaining > 0 ? calcEndTime : 'Paused';
-                            let craftTimeStr = craftTime.resRemaining > 0 ? calcEndTime : TimeToStr(new Date(Date.now() + ((craftDuration * 1000) / EMPTY_CRAFTING_SPEED_PER_TIER[starbase.account.level])));
-                            //let craftTimeStr = TimeToStr(new Date(Date.now() + ((craftDuration * 1000) / EMPTY_CRAFTING_SPEED_PER_TIER[starbase.account.level])));
+                            let craftTimeStr = craftTime.resRemaining > 0 ? calcEndTime : utils.TimeToStr(new Date(Date.now() + ((craftDuration * 1000) / EMPTY_CRAFTING_SPEED_PER_TIER[starbase.account.level])));
+                            //let craftTimeStr = utils.TimeToStr(new Date(Date.now() + ((craftDuration * 1000) / EMPTY_CRAFTING_SPEED_PER_TIER[starbase.account.level])));
                             let activityTimeStr = activityType == 'Crafting' ? craftTimeStr : upgradeTimeStr;
                             //updateFleetState(userCraft, activityType + ' [' + activityTimeStr + ']');
                             updateFleetState(userCraft, activityInfo + ' [' + activityTimeStr + ']');
