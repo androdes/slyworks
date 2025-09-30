@@ -734,11 +734,11 @@ var sly = (async function (exports) {
     }
 
     function calcWarpFuelReq(fleet, startCoords, endCoords, warpSubwarp) {
-        if (!CoordsValid(startCoords) || !CoordsValid(endCoords)) {
+        if (!utils.CoordsValid(startCoords) || !utils.CoordsValid(endCoords)) {
             logger.log(4, `${utils.FleetTimeStamp(fleet.label)} calcWarpFuelReq: Bad coords`, startCoords, endCoords);
             return 0;
         }
-        if (CoordsEqual(startCoords, endCoords)) {
+        if (utils.CoordsEqual(startCoords, endCoords)) {
             logger.log(4, `${utils.FleetTimeStamp(fleet.label)} calcWarpFuelReq: Same coords`, startCoords, endCoords);
             return 0;
         }
@@ -749,7 +749,7 @@ var sly = (async function (exports) {
         let fuelRequired = 0;
         let curWP = [startX, startY];
 
-        while (!CoordsEqual(curWP, endCoords)) {
+        while (!utils.CoordsEqual(curWP, endCoords)) {
             const nextWP = calcNextWarpPoint(fleet.maxWarpDistance, curWP, endCoords);
             const distance = calculateMovementDistance(curWP, nextWP);
             fuelRequired += Math.ceil(distance * (fleet.warpFuelConsumptionRate / 100));
@@ -4028,8 +4028,8 @@ var sly = (async function (exports) {
     }
 
     async function handleTransport(i, fleetState, fleetCoords) {
-        const [destX, destY] = ConvertCoords(userFleets[i].destCoord);
-        const [starbaseX, starbaseY] = ConvertCoords(userFleets[i].starbaseCoord);
+        const [destX, destY] = utils.ConvertCoords(userFleets[i].destCoord);
+        const [starbaseX, starbaseY] = utils.ConvertCoords(userFleets[i].starbaseCoord);
         logger.log(4, `Dest ${userFleets[i].destCoord} SB ${userFleets[i].starbaseCoord} fleetCoords ${fleetCoords} fleetState ${fleetState}`);
 
         const fleetParsedData = JSON.parse(await GM.getValue(userFleets[i].publicKey.toString(), '{}'));
@@ -4327,8 +4327,8 @@ var sly = (async function (exports) {
     async function handleSupply(i, fleetState, fleetCoords) {
         const fleet = userFleets[i];
         logger.log(4, `moveType: ${fleet.moveType}`);
-        const [destX, destY] = ConvertCoords(fleet.destCoord);
-        const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
+        const [destX, destY] = utils.ConvertCoords(fleet.destCoord);
+        const [starbaseX, starbaseY] = utils.ConvertCoords(fleet.starbaseCoord);
 
         const fleetParsedData = JSON.parse(await GM.getValue(fleet.publicKey.toString(), '{}'));
         logger.log(4, `fleetParsedData.loadCargo: ${fleetParsedData.loadCargo} fleetParsedData.unloadCargo ${fleetParsedData.unloadCargo} for ${destX},${destY}`);
@@ -4448,8 +4448,8 @@ var sly = (async function (exports) {
                     fleet.resupplying = false;
                     logger.log(1, `${utils.FleetTimeStamp(fleet.label)} No cargo operations needed, moving`);
                     logger.log(4, `Moving fleet to ${fleet.destCoord} moveType: ${fleet.moveType}`);
-                    const [destX, destY] = ConvertCoords(fleet.destCoord);
-                    const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
+                    const [destX, destY] = utils.ConvertCoords(fleet.destCoord);
+                    const [starbaseX, starbaseY] = utils.ConvertCoords(fleet.starbaseCoord);
                     // Vérifier si on doit se déplacer vers la destination
                     if (fleetCoords[0] !== destX || fleetCoords[1] !== destY) {
                         logger.log(4, `${utils.FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);
@@ -4471,8 +4471,8 @@ var sly = (async function (exports) {
     async function handleEmptyMove(i, fleetState, fleetCoords) {
         const fleet = userFleets[i];
         logger.log(4, `moveType: ${fleet.moveType}`);
-        const [destX, destY] = ConvertCoords(fleet.destCoord);
-        const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
+        const [destX, destY] = utils.ConvertCoords(fleet.destCoord);
+        const [starbaseX, starbaseY] = utils.ConvertCoords(fleet.starbaseCoord);
         if (fleetCoords[0] === starbaseX && fleetCoords[1] === starbaseY) {
             fleet.resupplying = true;
             fleet.moving = true;
@@ -4503,8 +4503,8 @@ var sly = (async function (exports) {
                 await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleet));
                 logger.log(1, `${utils.FleetTimeStamp(fleet.label)} No cargo operations needed, moving`);
                 logger.log(4, `Moving fleet to ${fleet.destCoord} moveType: ${fleet.moveType}`);
-                const [destX, destY] = ConvertCoords(fleet.destCoord);
-                const [starbaseX, starbaseY] = ConvertCoords(fleet.starbaseCoord);
+                const [destX, destY] = utils.ConvertCoords(fleet.destCoord);
+                const [starbaseX, starbaseY] = utils.ConvertCoords(fleet.starbaseCoord);
                 // Vérifier si on doit se déplacer vers la destination
                 if (fleetCoords[0] !== destX || fleetCoords[1] !== destY) {
                     logger.log(4, `${utils.FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);

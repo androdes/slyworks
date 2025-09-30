@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.11
+// @version      0.0.12
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
@@ -2394,7 +2394,7 @@
         if (!fleet.currentWorkflowStep) return false;
 
         try {
-            let fleetAcctInfo = await slyModule.slyModule.getAccountInfo(fleet.label, 'vérification workflow', fleet.publicKey);
+            let fleetAcctInfo = await slyModule.getAccountInfo(fleet.label, 'vérification workflow', fleet.publicKey);
             slyModule.updateFleetMiscStats(fleet, fleetAcctInfo);
             let [fleetState, extra] = slyModule.getFleetState(fleetAcctInfo, fleet);
 
@@ -2429,7 +2429,7 @@
                         return false;
                     }
                     const dest = `${destination.x},${destination.y}`;
-                    const [destX, destY] = ConvertCoords(dest);
+                    const [destX, destY] = utils.ConvertCoords(dest);
                     const isAtDestination = fleetState === 'Idle' && extra && extra[0] === destX && extra[1] === destY;
 
                     if (isAtDestination) {
@@ -2444,7 +2444,7 @@
                         return false;
                     }
                     const destMove = `${destinationMove.x},${destinationMove.y}`;
-                    const [destMoveX, destMoveY] = ConvertCoords(destMove);
+                    const [destMoveX, destMoveY] = utils.ConvertCoords(destMove);
                     const isAtDestinationMove = fleetState === 'Idle' && extra && extra[0] === destMoveX && extra[1] === destMoveY;
 
                     if (isAtDestinationMove) {
