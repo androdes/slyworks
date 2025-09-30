@@ -1977,7 +1977,7 @@
                     <button class="delete-resupply-item-btn">X</button>
                 `;
                 const resourceSelect = itemDiv.querySelector('.resupply-resource');
-                resourceSelect.innerHTML = slyModule.getCargoItems.map(res =>
+                resourceSelect.innerHTML = slyModule.getCargoItems().map(res =>
                     `<option value="${res.name}" ${res.name === item.resource ? 'selected' : ''}>${res.name}</option>`
                 ).join('');
                 const deleteBtn = itemDiv.querySelector('.delete-resupply-item-btn');
@@ -2104,7 +2104,7 @@
             <button class="delete-resupply-item-btn">X</button>
         `;
         const resourceSelect = itemDiv.querySelector('.resupply-resource');
-        resourceSelect.innerHTML = slyModule.getCargoItems.map(res =>
+        resourceSelect.innerHTML = slyModule.getCargoItems().map(res =>
             `<option value="${res.name}">${res.name}</option>`
         ).join('');
         const deleteBtn = itemDiv.querySelector('.delete-resupply-item-btn');
@@ -2570,7 +2570,7 @@
                     const unloadCargoManifest = [];
                     if (step.items && step.items.length > 0) {
                         step.items.forEach(item => {
-                            const resourceToken = slyModule.getCargoItems.find(r => r.name === item.resource)?.token ||
+                            const resourceToken = slyModule.getCargoItems().find(r => r.name === item.resource)?.token ||
                                 (item.resource === 'Fuel' ? sageGameAcct.account.mints.fuel.toString() :
                                     item.resource === 'Ammunition' ? sageGameAcct.account.mints.ammo.toString() :
                                         item.resource === 'Food' ? sageGameAcct.account.mints.food.toString() :
@@ -2730,7 +2730,7 @@
             fleetParsedData.starbase = `${targetStarbase.x},${targetStarbase.y}`;
 
             // Mettre à jour slyModule.getUserFleets()
-            slyModule.getUserFleets()[fleetIndex].mineResource = slyModule.getCargoItems.find(r => r.name == step.resource).token;
+            slyModule.getUserFleets()[fleetIndex].mineResource = slyModule.getCargoItems().find(r => r.name == step.resource).token;
             slyModule.getUserFleets()[fleetIndex].starbaseCoord = `${targetStarbase.x},${targetStarbase.y}`;
             slyModule.getUserFleets()[fleetIndex].destCoord = `${targetStarbase.x},${targetStarbase.y}`;
             await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleetParsedData));
@@ -2902,7 +2902,7 @@
             return;
         }
         updateView('crafting-view');
-        craftingResource.innerHTML = slyModule.getCraftableItems.map(item => {
+        craftingResource.innerHTML = slyModule.getCraftableItems().map(item => {
             const name = new TextDecoder().decode(new Uint8Array(item.account.namespace)).replace(/\0/g, '');
             return `<option value="${name}">${name}</option>`;
         }).join('');
