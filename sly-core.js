@@ -4828,10 +4828,22 @@ var sly = (async function (exports) {
         return await rpc.getReadConnection().getParsedTokenAccountsByOwner(fleet.ammoBank, {programId: tokenProgramPK})
     }
 
+    async function getFleetFuelBank(fleet) {
+        return await rpc.getReadConnection().getParsedTokenAccountsByOwner(fleet.fuelTank, {programId: tokenProgramPK})
+    }
+
+
     async function getFleetAmmoCount(fleet) {
         const ammoMint = sageGameAcct.account.mints.ammo.toString();
         const bank = await getFleetAmmoBank(fleet);
         const value = bank.value.find(item => item.account.data.parsed.info.mint === ammoMint);
+        return value ? value.account.data.parsed.info.tokenAmount.uiAmount : 0;
+    }
+
+    async function getFleetFuelCount(fleet) {
+        const ammoMint = sageGameAcct.account.mints.fuel.toString();
+        const bank = await getFleetFuelBank(fleet);
+        const value = bank.value.find(item => item.account.data.parsed.info.mint === fuelMint);
         return value ? value.account.data.parsed.info.tokenAmount.uiAmount : 0;
     }
 
@@ -4840,6 +4852,8 @@ var sly = (async function (exports) {
         updateFleetState(fleet, 'Unloading');
 
         const ammoMint = sageGameAcct.account.mints.ammo.toString();
+        const fuelMint = sageGameAcct.account.mints.fuel.toString();
+
         const fleetCurrentCargo = await rpc.getReadConnection().getParsedTokenAccountsByOwner(fleet.cargoHold, {programId: tokenProgramPK});
 
         let transactions = [];
@@ -4887,6 +4901,22 @@ var sly = (async function (exports) {
             if (ammoToUnload > 0) {
                 logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading Ammobanks: ${ammoToUnload}`);
                 let resp = await execCargoFromFleetToStarbase(fleet, fleet.ammoBank, ammoMint, starbaseCoord, ammoToUnload, returnTx);
+                if (returnTx && resp) {
+                    transactions.push(resp);
+                }
+            }
+        }
+        //Fuel bank unloading
+        const fuelEntry = transportManifest.find(e => e.res === fuelMint);
+        if (fuelEntry) {
+            let currentFuelCnt = await getFleetFuelCount(fleet);
+            let fuelToUnload = Math.min(currentFuelCnt, ammoUnloadDeficit);
+            if (globalSettings.transportKeep1 && fuelToUnload > 0) {
+                fuelToUnload -= 1;
+            }
+            if (fuelToUnload > 0) {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading Fuelbanks: ${fuelToUnload}`);
+                let resp = await execCargoFromFleetToStarbase(fleet, fleet.fuelTank, fuelMint, starbaseCoord, fuelToUnload, returnTx);
                 if (returnTx && resp) {
                     transactions.push(resp);
                 }
