@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.23
+// @version      0.0.25
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
@@ -33,7 +33,6 @@
 
     const uiCSS = `
     /* Styles pour le panneau de workflow */
-
     #workflow-panel {
         position: fixed;
         top: 5vh;
@@ -81,7 +80,7 @@
         position: absolute;
         top: 10px;
         left: 10px;
-        background-color: #6c757d; /* Gris, similaire à prev-btn */
+        background-color: #6c757d;
         color: white;
         padding: 6px 12px;
         border: none;
@@ -90,14 +89,14 @@
         font-size: 0.9em;
         transition: background-color 0.2s, color 0.2s;
         z-index: 1000;
-        display: none !important; /* Forcer le masquage par défaut */
+        display: none !important;
     }
 
     .stats-link {
         position: absolute;
         top: 10px;
         left: 10px;
-        background-color: #6c757d; /* Gris, similaire à prev-btn */
+        background-color: #6c757d;
         color: white;
         padding: 6px 12px;
         border: none;
@@ -106,11 +105,11 @@
         font-size: 0.9em;
         transition: background-color 0.2s, color 0.2s;
         z-index: 1000;
-        display: none !important; /* Forcer le masquage par défaut */
+        display: none !important;
     }
 
     #workflow-header #back-to-main-btn.back-link.visible {
-        display: block !important; /* Afficher uniquement avec .visible */
+        display: block !important;
     }
 
     #workflow-header #back-to-main-btn.back-link:hover {
@@ -132,7 +131,7 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        background-color: #dc3545; /* Rouge, similaire à delete-btn */
+        background-color: #dc3545;
         color: white;
         padding: 6px 12px;
         border: none;
@@ -146,7 +145,7 @@
     }
 
     #close-btn:hover {
-        background-color: #c82333; /* Rouge plus foncé au survol */
+        background-color: #c82333;
         color: #fff;
     }
 
@@ -163,7 +162,6 @@
         scrollbar-width: thin;
         scrollbar-color: #555 #2c2c2c;
     }
-
 
     .workflow-content::-webkit-scrollbar {
         width: 8px;
@@ -182,8 +180,6 @@
     .workflow-content::-webkit-scrollbar-thumb:hover {
         background: #666;
     }
-
-
 
     /* Styles pour assistStatsContent */
     #assistStatsContent {
@@ -209,24 +205,6 @@
 
     .assist-fleet-row:hover {
         background-color: rgba(75, 75, 75, 0.6);
-    }
-
-    .workflow-content::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .workflow-content::-webkit-scrollbar-track {
-        background: #2c2c2c;
-        border-radius: 4px;
-    }
-
-    .workflow-content::-webkit-scrollbar-thumb {
-        background: #555;
-        border-radius: 4px;
-    }
-
-    .workflow-content::-webkit-scrollbar-thumb:hover {
-        background: #666;
     }
 
     /* Sections du workflow */
@@ -370,7 +348,7 @@
 
     /* Boutons de contrôle */
     .control-btn {
-        padding: 4px 8px;
+        padding: 6px 10px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
@@ -472,7 +450,7 @@
         margin: 10px 0 0 0;
     }
 
-    li {
+    #workflow-panel li {
         background-color: rgba(75, 75, 75, 0.3);
         padding: 8px;
         border-radius: 5px;
@@ -485,8 +463,66 @@
         align-items: center;
     }
 
-    li:hover {
+    #workflow-panel li:hover {
         background-color: rgba(75, 75, 75, 0.6);
+    }
+
+    /* Règle spécifique pour les workflow-item */
+    #current-workflow li.workflow-item {
+        background-color: rgba(75, 75, 75, 0.3);
+        padding: 12px !important;
+        border-radius: 5px;
+        margin-bottom: 12px !important;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        min-height: 50px !important;
+    }
+
+    #current-workflow li.workflow-item:hover {
+        background-color: rgba(75, 75, 75, 0.6);
+    }
+
+    /* Composants dans workflow-item */
+    #current-workflow .fleet-info,
+    #current-workflow .workflow-controls {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Alignement des trois composants sur la même ligne */
+    #current-workflow li.workflow-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #current-workflow .fleet-label,
+    #current-workflow .fleet-food,
+    #current-workflow .fleet-status-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Conteneur pour aligner les fleet-status verticalement */
+    #current-workflow .fleet-status-container {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+
+    #current-workflow .fleet-status {
+        width: 100%;
+        text-align: left;
     }
 
     .delete-step-btn {
@@ -591,6 +627,8 @@
     }
 
     .global-controls .workflow-controls {
+        display: flex;
+        gap: 8px;
         margin-top: 0;
         justify-content: center;
     }
@@ -802,7 +840,7 @@
             height: 97vh;
         }
     }
-        `;
+`;
 
     const uiHTML = `
         <button id="toggle-button">Manage Fleets</button>
