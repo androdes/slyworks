@@ -2905,7 +2905,7 @@
     }
 
     craftingBtn.addEventListener('click', async () => {
-        if (!initComplete) {
+        if (!slyModule.isInitComplete()) {
             alert('Please load fleets first.');
             return;
         }
