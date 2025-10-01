@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.25
+// @version      0.0.27
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
@@ -211,6 +211,24 @@
         background-color: rgba(75, 75, 75, 0.6);
     }
 
+    .workflow-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .workflow-content::-webkit-scrollbar-track {
+        background: #2c2c2c;
+        border-radius: 4px;
+    }
+
+    .workflow-content::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 4px;
+    }
+
+    .workflow-content::-webkit-scrollbar-thumb:hover {
+        background: #666;
+    }
+
     /* Sections du workflow */
     .workflow-section {
         margin-bottom: 20px;
@@ -352,7 +370,7 @@
 
     /* Boutons de contrôle */
     .control-btn {
-        padding: 6px 10px;
+        padding: 4px 8px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
@@ -784,7 +802,7 @@
             height: 97vh;
         }
     }
-`;
+        `;
 
     const uiHTML = `
         <button id="toggle-button">Manage Fleets</button>

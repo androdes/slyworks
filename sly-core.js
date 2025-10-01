@@ -4841,7 +4841,7 @@ var sly = (async function (exports) {
     }
 
     async function getFleetFuelCount(fleet) {
-        const ammoMint = sageGameAcct.account.mints.fuel.toString();
+        const fuelMint = sageGameAcct.account.mints.fuel.toString();
         const bank = await getFleetFuelBank(fleet);
         const value = bank.value.find(item => item.account.data.parsed.info.mint === fuelMint);
         return value ? value.account.data.parsed.info.tokenAmount.uiAmount : 0;
