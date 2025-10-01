@@ -33,6 +33,7 @@
 
     const uiCSS = `
     /* Styles pour le panneau de workflow */
+
     #workflow-panel {
         position: fixed;
         top: 5vh;
@@ -80,7 +81,7 @@
         position: absolute;
         top: 10px;
         left: 10px;
-        background-color: #6c757d;
+        background-color: #6c757d; /* Gris, similaire à prev-btn */
         color: white;
         padding: 6px 12px;
         border: none;
@@ -89,14 +90,14 @@
         font-size: 0.9em;
         transition: background-color 0.2s, color 0.2s;
         z-index: 1000;
-        display: none !important;
+        display: none !important; /* Forcer le masquage par défaut */
     }
 
     .stats-link {
         position: absolute;
         top: 10px;
         left: 10px;
-        background-color: #6c757d;
+        background-color: #6c757d; /* Gris, similaire à prev-btn */
         color: white;
         padding: 6px 12px;
         border: none;
@@ -105,11 +106,11 @@
         font-size: 0.9em;
         transition: background-color 0.2s, color 0.2s;
         z-index: 1000;
-        display: none !important;
+        display: none !important; /* Forcer le masquage par défaut */
     }
 
     #workflow-header #back-to-main-btn.back-link.visible {
-        display: block !important;
+        display: block !important; /* Afficher uniquement avec .visible */
     }
 
     #workflow-header #back-to-main-btn.back-link:hover {
@@ -131,7 +132,7 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        background-color: #dc3545;
+        background-color: #dc3545; /* Rouge, similaire à delete-btn */
         color: white;
         padding: 6px 12px;
         border: none;
@@ -145,7 +146,7 @@
     }
 
     #close-btn:hover {
-        background-color: #c82333;
+        background-color: #c82333; /* Rouge plus foncé au survol */
         color: #fff;
     }
 
@@ -162,6 +163,7 @@
         scrollbar-width: thin;
         scrollbar-color: #555 #2c2c2c;
     }
+
 
     .workflow-content::-webkit-scrollbar {
         width: 8px;
@@ -180,6 +182,8 @@
     .workflow-content::-webkit-scrollbar-thumb:hover {
         background: #666;
     }
+
+
 
     /* Styles pour assistStatsContent */
     #assistStatsContent {
@@ -450,7 +454,7 @@
         margin: 10px 0 0 0;
     }
 
-    #workflow-panel li {
+    li {
         background-color: rgba(75, 75, 75, 0.3);
         padding: 8px;
         border-radius: 5px;
@@ -463,66 +467,8 @@
         align-items: center;
     }
 
-    #workflow-panel li:hover {
+    li:hover {
         background-color: rgba(75, 75, 75, 0.6);
-    }
-
-    /* Règle spécifique pour les workflow-item */
-    #current-workflow li.workflow-item {
-        background-color: rgba(75, 75, 75, 0.3);
-        padding: 12px !important;
-        border-radius: 5px;
-        margin-bottom: 12px !important;
-        font-size: 0.9em;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        display: flex;
-        justify-content: space-evenly;
-        align-items: center;
-        min-height: 50px !important;
-    }
-
-    #current-workflow li.workflow-item:hover {
-        background-color: rgba(75, 75, 75, 0.6);
-    }
-
-    /* Composants dans workflow-item */
-    #current-workflow .fleet-info,
-    #current-workflow .workflow-controls {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
-    }
-
-    /* Alignement des trois composants sur la même ligne */
-    #current-workflow li.workflow-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-    }
-
-    #current-workflow .fleet-label,
-    #current-workflow .fleet-food,
-    #current-workflow .fleet-status-container {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    /* Conteneur pour aligner les fleet-status verticalement */
-    #current-workflow .fleet-status-container {
-        flex-direction: column;
-        gap: 4px;
-        align-items: flex-start;
-    }
-
-    #current-workflow .fleet-status {
-        width: 100%;
-        text-align: left;
     }
 
     .delete-step-btn {
@@ -627,8 +573,6 @@
     }
 
     .global-controls .workflow-controls {
-        display: flex;
-        gap: 8px;
         margin-top: 0;
         justify-content: center;
     }
