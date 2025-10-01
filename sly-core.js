@@ -4910,7 +4910,7 @@ var sly = (async function (exports) {
         const fuelEntry = transportManifest.find(e => e.res === fuelMint);
         if (fuelEntry) {
             let currentFuelCnt = await getFleetFuelCount(fleet);
-            let fuelToUnload = Math.min(currentFuelCnt, ammoUnloadDeficit);
+            let fuelToUnload = Math.min(currentFuelCnt, fuelUnloadDeficit);
             if (globalSettings.transportKeep1 && fuelToUnload > 0) {
                 fuelToUnload -= 1;
             }
