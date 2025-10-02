@@ -4657,11 +4657,9 @@ var sly = (async function (exports) {
         logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ⛽ Refueling`);
         updateFleetState(fleet, 'Refueling');
         let fuelResp = {status: 0, detail: '', amount: 0};
-        let topupFuel = loadCargoManifest.some(e => e.topupFuel);
+
         const fuelData = await getFleetFuelData(fleet, currentPos, targetPos, roundTrip);
-        if(topupFuel){
-            fuelData.fuelNeeded = fuelData.capacity;
-        }
+
         if (fuelData.fuelNeeded > fuelData.capacity) {
             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for round trip`);
             fuelResp.detail = 'ERROR: Fuel tank too small for round trip';
@@ -4709,9 +4707,13 @@ var sly = (async function (exports) {
         if (globalSettings.transportFuel100 && roundTrip && fuelToAdd < fuelData.capacity - fuelData.amount) {
             fuelToAdd = fuelData.capacity - fuelData.amount;
         }
-
+        let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
+        if(topupFuel){
+            fuelToAdd = fuelData.capacity;
+        }
         //Put in the fuel
-        logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd}`)
+        logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd} ${topupFuel ? '(Topped up)' : ''}`)
+
         let execResp = await fuelFleet(fleet, starbaseCoord, fuelData.account, fuelToAdd, returnTx);
         logger.log(4, `${JSON.stringify(execResp)}`);
         if (execResp && execResp.name == 'NotEnoughResource') {
