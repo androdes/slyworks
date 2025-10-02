@@ -4709,7 +4709,7 @@ var sly = (async function (exports) {
         }
         let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
         if(topupFuel){
-            fuelToAdd = fuelData.capacity;
+            fuelToAdd = fuelData.capacity - fuelData.amount;
         }
         //Put in the fuel
         logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd} ${topupFuel ? '(Topped up)' : ''}`)
