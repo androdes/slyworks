@@ -4334,7 +4334,7 @@ var sly = (async function (exports) {
         let unloadCargoManifest = fleetParsedData.unloadCargo ? JSON.parse(fleetParsedData.unloadCargo) : [];  // Correction: Vérification et défaut à []
         const hasLoadManifest = hasTransportManifest(loadCargoManifest);
         const hasUnloadManifest = hasTransportManifest(unloadCargoManifest);
-        const topupFuel = false;
+
 
         if (fleetState === 'Idle') {
             // Vérifier si la flotte est à la starbase
@@ -4657,9 +4657,11 @@ var sly = (async function (exports) {
         logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ⛽ Refueling`);
         updateFleetState(fleet, 'Refueling');
         let fuelResp = {status: 0, detail: '', amount: 0};
-
+        let topupFuel = loadCargoManifest.some(e => e.topupFuel);
         const fuelData = await getFleetFuelData(fleet, currentPos, targetPos, roundTrip);
-
+        if(topupFuel){
+            fuelData.fuelNeeded = fuelData.capacity;
+        }
         if (fuelData.fuelNeeded > fuelData.capacity) {
             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for round trip`);
             fuelResp.detail = 'ERROR: Fuel tank too small for round trip';
