@@ -4139,7 +4139,7 @@ var sly = (async function (exports) {
                     if (refuelResp.status === 0) {
                         userFleets[i].state = refuelResp.detail;
                         return;
-                    } else if (transportLoadUnloadSingleTx && refuelResp && refuelResp.transactions) {
+                    } else if (refuelResp && refuelResp.transactions) {
                         transactions = transactions.concat(refuelResp.transactions);
                     }
 
@@ -4147,7 +4147,9 @@ var sly = (async function (exports) {
                     if (fuelIndex > -1) {
                         targetCargoManifest[fuelIndex].amt = targetCargoManifest[fuelIndex].amt - refuelResp.amount;
                         //when using a combined load tx, we need to take into account the amount loaded into the fuel tank, because the starbase still reports the original amount (otherwise we may get an ix error instead a "NotEnoughResource" error)
-                        if (transportLoadUnloadSingleTx && refuelResp.alreadyLoaded) targetCargoManifest[fuelIndex].alreadyLoadedInTransaction = refuelResp.alreadyLoaded;
+                        if (refuelResp.alreadyLoaded){
+                            targetCargoManifest[fuelIndex].alreadyLoadedInTransaction = refuelResp.alreadyLoaded;
+                        }
                     }
 
                     //Loading at Starbase
@@ -4332,6 +4334,7 @@ var sly = (async function (exports) {
         let unloadCargoManifest = fleetParsedData.unloadCargo ? JSON.parse(fleetParsedData.unloadCargo) : [];  // Correction: Vérification et défaut à []
         const hasLoadManifest = hasTransportManifest(loadCargoManifest);
         const hasUnloadManifest = hasTransportManifest(unloadCargoManifest);
+        const topupFuel = false;
 
         if (fleetState === 'Idle') {
             // Vérifier si la flotte est à la starbase
@@ -4657,24 +4660,11 @@ var sly = (async function (exports) {
 
         const fuelData = await getFleetFuelData(fleet, currentPos, targetPos, roundTrip);
 
-        /*
-            //Calculate fuel needed
-            const costMultiplier = roundTrip ? 2 : 1;
-            let fuelNeeded = 0;
-            if (fleet.moveType == 'warp') {
-                fuelNeeded = fuelData.warpCost * costMultiplier;
-                if(fuelNeeded > fuelData.capacity)
-                    if(roundTrip) fuelNeeded = fuelData.warpCost + fuelData.subwarpCost;
-                    else fuelNeeded = fuelData.subwarpCost;
-            } else fuelNeeded = fuelData.subwarpCost * costMultiplier;
-            */
-
         if (fuelData.fuelNeeded > fuelData.capacity) {
             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for round trip`);
             fuelResp.detail = 'ERROR: Fuel tank too small for round trip';
             return fuelResp;
         }
-
         const fuelEntry = transportManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || {amt: 0};
 
         //Log fuel readouts
@@ -4740,19 +4730,7 @@ var sly = (async function (exports) {
         return fuelResp
     }
 
-    /*
-        async function txSliceAndSend(transactions, fleet, opName, priorityFeeMultiplier, maxInstructionsPerTx) {
-            let txResult;
-            for (let chunk = 0; chunk < transactions.length; chunk += maxInstructionsPerTx) {
-                let transactionsSlice = transactions.slice(chunk, chunk + maxInstructionsPerTx);
-                if(transactionsSlice.length == 1)
-                    txResult = await txSignAndSend(transactionsSlice[0], fleet, opName, priorityFeeMultiplier );
-                else
-                    txResult = await txSignAndSend(transactionsSlice, fleet, opName, priorityFeeMultiplier );
-            }
-            return txResult;
-        }
-        */
+
 
     //new approach: squeeze as much as possible into a transaction by calculating the exact tx sizes, only make another tx if the max tx size is exceeded
     async function txSliceAndSend(transactions, fleet, opName, priorityFeeMultiplier, maxInstructionsPerTx) {

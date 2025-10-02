@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.28
+// @version      0.0.29
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
@@ -853,7 +853,7 @@
                 <div class="workflow-section">
                     <h3>Supply</h3>
                     <div id="resupply-items-container"></div>
-                    <button id="add-resupply-item-btn" class="action-btn" style="margin-top: 10px;">Add Resource</button>
+                    <button id="add-resupply-item-btn" class="action-btn" style="margin-top: 10px;">Add Load / Unload</button>
                     <button id="save-resupply-btn" class="action-btn" style="margin-top: 20px;">Save Step</button>
                 </div>
             </div>
@@ -1931,30 +1931,56 @@
         }
     }
 
-    function editResupplyStep(step) {
+    async function editResupplyStep(step) {
         updateView('resupply-view');
         resupplyItemsContainer.innerHTML = '';
 
         const destinationContainer = document.createElement('div');
         destinationContainer.classList.add('destination-container');
         destinationContainer.innerHTML = `
-            <label>Destination:</label>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <select class="text-input resupply-destination"></select>
-                <button class="delete-resupply-step-btn">X</button>
-            </div>
-            <label style="margin-top: 10px;">Move Mode après resupply:</label>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <select class="text-input resupply-move-mode">
-                    <option value="warp">Warp</option>
-                    <option value="subwarp">Subwarp</option>
-                </select>
-            </div>
-            <div class="resupply-note">Note : Vous pouvez sauvegarder sans ajouter de ressources pour effectuer uniquement un déplacement.</div>
-        `;
+        <label>Destination:</label>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <select class="text-input resupply-destination"></select>
+            <button class="delete-resupply-step-btn">X</button>
+        </div>
+        <label style="margin-top: 10px;">Move Mode :</label>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <select class="text-input resupply-move-mode">
+                <option value="warp">Warp</option>
+                <option value="subwarp">Subwarp</option>
+            </select>
+        </div>
+        <div class="resupply-note">Note : Vous pouvez sauvegarder sans ajouter de ressources pour effectuer uniquement un déplacement.</div>
+        <div class="previous-step-note" style="color: #ffd700; font-size: 0.9em; margin-top: 5px;"></div>
+        <label for="topup">Top up fuel</label>
+        <input type="checkbox" class="resupply-topup" id="topup">
+    `;
 
         const destinationSelect = destinationContainer.querySelector('.resupply-destination');
-        const destination = step.destination || (step.items.length > 0 ? step.items[0].destination : '');
+        const topupCheckbox = destinationContainer.querySelector('.resupply-topup');
+        topupCheckbox.checked = step.topupFuel;
+        const destination = step.destination || (step.items && step.items.length > 0 ? step.items[0].destination : '');
+
+        // Récupérer la destination du step précédent si ce n'est pas le premier step
+        let previousDestination = '';
+        if (editingStepIndex >= 1) {
+            const workflowKey = `workflow_${currentFleetKey}`;
+            const steps = await GM.getValue(workflowKey, []);
+            const prevStep = steps[editingStepIndex - 1];
+            if (prevStep) {
+                previousDestination = prevStep.destination ||
+                    (prevStep.items && prevStep.items.length > 0 ? prevStep.items[0].destination : '');
+            }
+        }
+
+        // Afficher la destination du step précédent dans une note
+        const previousStepNote = destinationContainer.querySelector('.previous-step-note');
+        if (previousDestination) {
+            previousStepNote.textContent = `From : ${previousDestination}`;
+        } else {
+            previousStepNote.textContent = '';
+        }
+
         destinationSelect.innerHTML = slyModule.getValidTargets().map(dest =>
             `<option value="${dest.name}" ${dest.name === destination ? 'selected' : ''}>${dest.name}</option>`
         ).join('');
@@ -1971,16 +1997,18 @@
         if (step.items && step.items.length > 0) {
             step.items.forEach(item => {
                 const itemDiv = document.createElement('div');
+
                 itemDiv.classList.add('resupply-item');
                 itemDiv.innerHTML = `
-                    <select class="text-input resupply-action">
-                        <option value="recharge" ${item.action === 'recharge' ? 'selected' : ''}>Load</option>
-                        <option value="discharge" ${item.action === 'discharge' ? 'selected' : ''}>Unload</option>
-                    </select>
-                    <select class="text-input resupply-resource"></select>
-                    <input type="number" class="text-input resupply-amount" value="${item.amount}">
-                    <button class="delete-resupply-item-btn">X</button>
-                `;
+               
+                <select class="text-input resupply-action">
+                    <option value="recharge" ${item.action === 'recharge' ? 'selected' : ''}>Load</option>
+                    <option value="discharge" ${item.action === 'discharge' ? 'selected' : ''}>Unload</option>
+                </select>
+                <select class="text-input resupply-resource"></select>
+                <input type="number" class="text-input resupply-amount" value="${item.amount}">
+                <button class="delete-resupply-item-btn">X</button>
+            `;
                 const resourceSelect = itemDiv.querySelector('.resupply-resource');
                 resourceSelect.innerHTML = slyModule.getCargoItems().map(res =>
                     `<option value="${res.name}" ${res.name === item.resource ? 'selected' : ''}>${res.name}</option>`
@@ -1989,7 +2017,7 @@
                 deleteBtn.addEventListener('click', () => {
                     itemDiv.remove();
                     if (!resupplyItemsContainer.querySelector('.resupply-item')) {
-                        // Ne pas vider destinationContainer
+                        // Ne pas vider destinationContainer pour permettre un move sans cargo
                     }
                 });
                 resupplyItemsContainer.appendChild(itemDiv);
@@ -2063,30 +2091,56 @@
         updateView('steps-view');
     }
 
-    function addResupplyItem() {
+    async function addResupplyItem() {
         let destinationContainer = resupplyItemsContainer.querySelector('.destination-container');
         if (!destinationContainer) {
             destinationContainer = document.createElement('div');
             destinationContainer.classList.add('destination-container');
             destinationContainer.innerHTML = `
-                <label>Destination:</label>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <select class="text-input resupply-destination"></select>
-                    <button class="delete-resupply-step-btn">X</button>
-                </div>
-                <label style="margin-top: 10px;">Move Mode après resupply:</label>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <select class="text-input resupply-move-mode">
-                        <option value="warp">Warp</option>
-                        <option value="subwarp">Subwarp</option>
-                    </select>
-                </div>
-                <div class="resupply-note">Note : Vous pouvez sauvegarder sans ajouter de ressources pour effectuer uniquement un déplacement.</div>
-            `;
+            <label>Destination:</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <select class="text-input resupply-destination"></select>
+                <button class="delete-resupply-step-btn">X</button>
+            </div>
+            <label style="margin-top: 10px;">Move Mode :</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <select class="text-input resupply-move-mode">
+                    <option value="warp">Warp</option>
+                    <option value="subwarp">Subwarp</option>
+                </select>
+            </div>
+            <div class="resupply-note">Note : Vous pouvez sauvegarder sans ajouter de ressources pour effectuer uniquement un déplacement.</div>
+            <div class="previous-step-note" style="color: #ffd700; font-size: 0.9em; margin-top: 5px;"></div>
+            <label for="topup">Top up fuel</label>
+            <input type="checkbox" class="resupply-topup" id="topup">
+        `;
             const destinationSelect = destinationContainer.querySelector('.resupply-destination');
+
+            // Remplir le menu déroulant sans présélectionner de destination
             destinationSelect.innerHTML = slyModule.getValidTargets().map(destination =>
                 `<option value="${destination.name}">${destination.name}</option>`
             ).join('');
+
+            // Récupérer la destination du step précédent si ce n'est pas le premier step
+            let previousDestination = '';
+            if (editingStepIndex >= 1 || (!editingStepIndex && workflowStepsList.querySelectorAll('.step-item').length > 0)) {
+                const workflowKey = `workflow_${currentFleetKey}`;
+                const steps = await GM.getValue(workflowKey, []);
+                const prevStepIndex = editingStepIndex >= 0 ? editingStepIndex - 1 : steps.length - 1;
+                if (steps[prevStepIndex]) {
+                    previousDestination = steps[prevStepIndex].destination ||
+                        (steps[prevStepIndex].items && steps[prevStepIndex].items.length > 0 ? steps[prevStepIndex].items[0].destination : '');
+                }
+            }
+
+            // Afficher la destination du step précédent dans une note
+            const previousStepNote = destinationContainer.querySelector('.previous-step-note');
+            if (previousDestination) {
+                previousStepNote.textContent = `Destination du step précédent : ${previousDestination}`;
+            } else {
+                previousStepNote.textContent = 'Aucun step précédent ou pas de destination définie.';
+            }
+
             const moveModeSelect = destinationContainer.querySelector('.resupply-move-mode');
             moveModeSelect.value = 'warp'; // Défaut
 
@@ -2100,14 +2154,15 @@
         const itemDiv = document.createElement('div');
         itemDiv.classList.add('resupply-item');
         itemDiv.innerHTML = `
-            <select class="text-input resupply-action">
-                <option value="recharge">Load</option>
-                <option value="discharge">Unload</option>
-            </select>
-            <select class="text-input resupply-resource"></select>
-            <input type="number" class="text-input resupply-amount" value="100">
-            <button class="delete-resupply-item-btn">X</button>
-        `;
+        
+        <select class="text-input resupply-action">
+            <option value="recharge">Load</option>
+            <option value="discharge">Unload</option>
+        </select>
+        <select class="text-input resupply-resource"></select>
+        <input type="number" class="text-input resupply-amount" value="100">
+        <button class="delete-resupply-item-btn">X</button>
+    `;
         const resourceSelect = itemDiv.querySelector('.resupply-resource');
         resourceSelect.innerHTML = slyModule.getCargoItems().map(res =>
             `<option value="${res.name}">${res.name}</option>`
@@ -2117,7 +2172,6 @@
             itemDiv.remove();
             if (!resupplyItemsContainer.querySelector('.resupply-item')) {
                 // Ne pas vider destinationContainer pour permettre un move sans cargo
-                // resupplyItemsContainer.innerHTML = '';
             }
         });
         resupplyItemsContainer.appendChild(itemDiv);
@@ -2145,13 +2199,14 @@
         const destinationEl = resupplyItemsContainer.querySelector('.resupply-destination');
         const moveModeEl = resupplyItemsContainer.querySelector('.resupply-move-mode');
         const itemElements = resupplyItemsContainer.querySelectorAll('.resupply-item');
-
+        const topupEl = resupplyItemsContainer.querySelector('.resupply-topup');
         if (!destinationEl) {
             alert('Veuillez sélectionner une destination valide.');
             return;
         }
 
         const destination = destinationEl.value;
+        const topup = topupEl.checked;
         const moveMode = moveModeEl ? moveModeEl.value : 'warp'; // Défaut 'warp'
         if (!destination) {
             alert('Veuillez sélectionner une destination valide.');
@@ -2170,7 +2225,7 @@
                 return;
             }
 
-            items.push({destination, action, resource, amount});
+            items.push({destination, action, resource, amount, topupFuel: topup});
         });
 
         if (!isValid && itemElements.length > 0) {
@@ -2188,7 +2243,8 @@
             type: 'resupply',
             items: items,
             moveMode: moveMode,
-            destination: destination // Ajouter la destination explicitement
+            destination: destination,
+            topupFuel: topupEl.checked
         };
         logger.log(4, `Saving step ${JSON.stringify(step)}`);
         saveStep(step);
@@ -2587,7 +2643,7 @@
                                 return;
                             }
 
-                            const cargoEntry = {res: resourceToken, amt: item.amount, crew: 0};
+                            const cargoEntry = {res: resourceToken, amt: item.amount, crew: 0, topupFuel: step.topupFuel};
 
                             if (isAtStarbase) {
                                 if (item.action === 'recharge') {
