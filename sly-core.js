@@ -4695,9 +4695,9 @@ var sly = (async function (exports) {
         const totalFuel = fuelData.fuelNeeded + fuelEntry.amt;
         let fuelToAdd = Math.min(fuelData.capacity, totalFuel) - fuelData.amount;
         fuelResp.alreadyLoaded = alreadyLoaded;
-
+        let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
         //Bail if already has enough
-        if (fuelToAdd <= 0) {
+        if (fuelToAdd <= 0 && !topupFuel) {
             fuelResp.status = 1;
             fuelResp.amount = fuelData.amount + fuelToAdd - fuelData.fuelNeeded;
             if (transactions.length > 0) fuelResp.transactions = transactions;
@@ -4707,7 +4707,6 @@ var sly = (async function (exports) {
         if (globalSettings.transportFuel100 && roundTrip && fuelToAdd < fuelData.capacity - fuelData.amount) {
             fuelToAdd = fuelData.capacity - fuelData.amount;
         }
-        let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
         if(topupFuel){
             fuelToAdd = fuelData.capacity - fuelData.amount;
         }
