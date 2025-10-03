@@ -4676,79 +4676,121 @@ var sly = (async function (exports) {
 
         const fuelData = await getFleetFuelData(fleet, currentPos, targetPos, roundTrip);
 
-        if (fuelData.fuelNeeded > fuelData.capacity) {
-            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for round trip`);
-            fuelResp.detail = 'ERROR: Fuel tank too small for round trip';
+        // Vérifier si le tank est assez grand pour AU MOINS un trajet simple
+        // (car on peut refueler depuis le cargo à la destination si c'est une starbase)
+        const fuelNeededOneWay = roundTrip ? fuelData.fuelNeeded / 2 : fuelData.fuelNeeded;
+        if (fuelNeededOneWay > fuelData.capacity) {
+            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for one-way trip`);
+            fuelResp.detail = 'ERROR: Fuel tank too small for one-way trip';
             return fuelResp;
         }
+
+        // Si round trip, vérifier qu'on a assez de fuel total (tank + cargo) pour le voyage complet
+        if (roundTrip) {
+            const fuelEntry = transportManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || {amt: 0};
+            const totalFuelAvailable = fuelData.amount + fuelEntry.amt;
+            if (fuelData.fuelNeeded > totalFuelAvailable) {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Not enough total fuel (tank + cargo) for round trip`);
+                fuelResp.detail = 'ERROR: Not enough total fuel for round trip';
+                return fuelResp;
+            }
+        }
+
         const fuelEntry = transportManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || {amt: 0};
+        let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
 
-        //Log fuel readouts
-        const extraFuel = Math.floor(fuelData.amount - fuelData.fuelNeeded);
-        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Current Fuel: ${fuelData.amount}`);
-        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Warp Cost: ${fuelData.warpCost}`);
-        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Subwarp Cost: ${fuelData.subwarpCost}`);
-        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Fuel To Transport: ${fuelEntry.amt}`);
-        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Extra Fuel: ${extraFuel}`);
-
+        // Variables pour tracker l'état du fuel
+        let currentFuelInTank = fuelData.amount;
+        let fuelInCargo = fuelEntry.amt;
         let transactions = [];
         let alreadyLoaded = 0;
 
-        //Unload extra fuel from tank
+        //Log fuel readouts initiaux
+        const initialExtraFuel = Math.floor(currentFuelInTank - fuelData.fuelNeeded);
+        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Current Fuel: ${currentFuelInTank}`);
+        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Warp Cost: ${fuelData.warpCost}`);
+        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Subwarp Cost: ${fuelData.subwarpCost}`);
+        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Fuel To Transport: ${fuelInCargo}`);
+        logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Initial Extra Fuel: ${initialExtraFuel}`);
+
+        // ÉTAPE 1: Gérer le déchargement de fuel si demandé
         if (amountToDropOff > 0) {
-            const fuelToUnload = Math.min(amountToDropOff, extraFuel);
-            if (fuelToUnload > 0) {
-                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading extra fuel: ${fuelToUnload}`);
-                let resp = await execCargoFromFleetToStarbase(fleet, fleet.fuelTank, sageGameAcct.account.mints.fuel.toString(), starbaseCoord, fuelToUnload, returnTx);
-                alreadyLoaded -= fuelToUnload;
+            // Calculer combien on peut/doit décharger depuis le tank
+            const extraFuelInTank = Math.max(0, currentFuelInTank - fuelData.fuelNeeded);
+            const fuelToUnloadFromTank = Math.min(amountToDropOff, extraFuelInTank);
+
+            if (fuelToUnloadFromTank > 0) {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading extra fuel from tank: ${fuelToUnloadFromTank}`);
+                let resp = await execCargoFromFleetToStarbase(fleet, fleet.fuelTank, sageGameAcct.account.mints.fuel.toString(), starbaseCoord, fuelToUnloadFromTank, returnTx);
+                currentFuelInTank -= fuelToUnloadFromTank;
+                alreadyLoaded -= fuelToUnloadFromTank;
                 if (returnTx && resp) {
                     transactions.push(resp);
                 }
             }
+
+            // Si on a déchargé moins que demandé, ajuster fuelInCargo
+            // (on ne charge pas le cargo dans le tank juste pour le décharger - on réduit simplement la quantité qu'on va charger plus tard)
+            const remainingToDropOff = amountToDropOff - fuelToUnloadFromTank;
+            if (remainingToDropOff > 0 && fuelInCargo > 0) {
+                const fuelNotToLoad = Math.min(remainingToDropOff, fuelInCargo);
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Reducing cargo fuel to load by: ${fuelNotToLoad} (to meet drop-off requirement)`);
+                fuelInCargo -= fuelNotToLoad;
+                alreadyLoaded -= fuelNotToLoad;
+            }
         }
 
-        //Calculate amount of fuel to add to the tank
-        const totalFuel = fuelData.fuelNeeded + fuelEntry.amt;
-        let fuelToAdd = Math.min(fuelData.capacity, totalFuel) - fuelData.amount;
+        // ÉTAPE 2: Calculer combien de fuel il faut ajouter
+        const totalFuelNeeded = fuelData.fuelNeeded + fuelInCargo;
+        let fuelToAdd = Math.min(fuelData.capacity, totalFuelNeeded) - currentFuelInTank;
         fuelResp.alreadyLoaded = alreadyLoaded;
-        let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
-        //Bail if already has enough
+
+        // Si on a déjà assez de fuel et qu'on ne force pas le topup
         if (fuelToAdd <= 0 && !topupFuel) {
             fuelResp.status = 1;
-            fuelResp.amount = fuelData.amount + fuelToAdd - fuelData.fuelNeeded;
+            fuelResp.amount = currentFuelInTank + fuelToAdd - fuelData.fuelNeeded;
             if (transactions.length > 0) fuelResp.transactions = transactions;
             return fuelResp;
         }
 
-        if (globalSettings.transportFuel100 && roundTrip && fuelToAdd < fuelData.capacity - fuelData.amount) {
-            fuelToAdd = fuelData.capacity - fuelData.amount;
+        // Appliquer les règles de topup
+        if (globalSettings.transportFuel100 && roundTrip && fuelToAdd < fuelData.capacity - currentFuelInTank) {
+            fuelToAdd = fuelData.capacity - currentFuelInTank;
         }
-        if(topupFuel){
-            fuelToAdd = fuelData.capacity - fuelData.amount;
+        if (topupFuel) {
+            fuelToAdd = fuelData.capacity - currentFuelInTank;
         }
-        //Put in the fuel
-        logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd} ${topupFuel ? '(Topped up)' : ''}`)
 
-        let execResp = await fuelFleet(fleet, starbaseCoord, fuelData.account, fuelToAdd, returnTx);
-        logger.log(4, `${JSON.stringify(execResp)}`);
-        if (execResp && execResp.name == 'NotEnoughResource') {
-            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Not enough fuel`);
-            if (globalSettings.emailNotEnoughFFA) await sendEMail(fleet.label + ' not enough fuel', '');
-            fuelResp.detail = 'ERROR: Not enough fuel';
+        // ÉTAPE 3: Ajouter le fuel nécessaire
+        if (fuelToAdd > 0) {
+            logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd} ${topupFuel ? '(Topped up)' : ''}`);
+
+            let execResp = await fuelFleet(fleet, starbaseCoord, fuelData.account, fuelToAdd, returnTx);
+            logger.log(4, `${JSON.stringify(execResp)}`);
+
+            if (execResp && execResp.name == 'NotEnoughResource') {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Not enough fuel`);
+                if (globalSettings.emailNotEnoughFFA) await sendEMail(fleet.label + ' not enough fuel', '');
+                fuelResp.detail = 'ERROR: Not enough fuel';
+            } else {
+                fuelResp.status = 1;
+                currentFuelInTank += fuelToAdd;
+                fuelResp.amount = currentFuelInTank - fuelData.fuelNeeded;
+                alreadyLoaded += fuelToAdd;
+                fuelResp.alreadyLoaded = alreadyLoaded;
+                if (returnTx && execResp.tx) {
+                    transactions.push(execResp.tx);
+                }
+            }
         } else {
             fuelResp.status = 1;
-            fuelResp.amount = fuelData.amount + fuelToAdd - fuelData.fuelNeeded;
-            alreadyLoaded += fuelToAdd;
-            fuelResp.alreadyLoaded = alreadyLoaded;
-            if (returnTx && execResp.tx) {
-                transactions.push(execResp.tx);
-            }
+            fuelResp.amount = currentFuelInTank - fuelData.fuelNeeded;
         }
+
         if (transactions.length > 0) fuelResp.transactions = transactions;
 
-        return fuelResp
+        return fuelResp;
     }
-
 
 
     //new approach: squeeze as much as possible into a transaction by calculating the exact tx sizes, only make another tx if the max tx size is exceeded
