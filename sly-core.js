@@ -4395,9 +4395,9 @@ var sly = (async function (exports) {
                         let fuelUnloadDeficit = 0;
                         if (hasUnloadManifest || checkCargoResult.needToUnload) {
                             resp = await handleTransportUnloading(fleet, fleet.starbaseCoord, unloadCargoManifest, transportLoadUnloadSingleTx);
-                            fuelUnloadDeficit = unloadResult.fuelUnloadDeficit;
+                            fuelUnloadDeficit = resp.fuelUnloadDeficit;
                             transactions = transactions.concat(resp.transactions);
-                            unloadedAmountInTransaction = unloadResult.unloadedAmount;
+                            unloadedAmountInTransaction = resp.unloadedAmount;
                         } else {
                             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading skipped - No resources specified`);
                         }
