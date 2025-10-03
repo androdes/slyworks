@@ -4081,7 +4081,9 @@ var sly = (async function (exports) {
                 const totalFuel = fuelData.fuelNeeded + fuelEntry.amt;
                 let fuelToAdd = Math.min(fuelData.capacity, totalFuel) - fuelData.amount;
                 // Check for "Fuel to 100% for transporters" (roundTrip only = source starbase)
-                if (fuelToAdd > 0 && globalSettings.transportFuel100 && fuelToAdd < fuelData.capacity - fuelData.amount) fuelToAdd = fuelData.capacity - fuelData.amount;
+                if (fuelToAdd > 0 && globalSettings.transportFuel100 && fuelToAdd < fuelData.capacity - fuelData.amount) {
+                    fuelToAdd = fuelData.capacity - fuelData.amount;
+                }
 
                 logger.log(4, `${utils.FleetTimeStamp(userFleets[i].label)} Fuel needed`, fuelData.fuelNeeded, '/ fuel found', fuelData.amount, '/ fuel to add', fuelToAdd, '/ needToLoad', checkCargoResult.needToLoad, '/ needToUnload', checkCargoResult.needToUnload, '/ needToLoadCrew', needToLoadCrew, '/ needToUnloadCrew', needToUnloadCrew);
 
@@ -4354,7 +4356,7 @@ var sly = (async function (exports) {
                         needToLoadCrew = Math.min(fleet.requiredCrew + fleet.passengerCapacity - fleet.crewCount, loadCargoManifest.find(e => e.crew > 0)?.crew || 0);
                     }
 
-                    const fuelData = await getFleetFuelData(fleet, [starbaseX, starbaseY], [destX, destY], true);
+                    const fuelData = await getFleetFuelData(fleet, [starbaseX, starbaseY], [destX, destY], false);
                     const fuelEntry = loadCargoManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || {amt: 0};
                     const totalFuel = fuelData.fuelNeeded + fuelEntry.amt;
                     let fuelToAdd = Math.min(fuelData.capacity, totalFuel) - fuelData.amount;
