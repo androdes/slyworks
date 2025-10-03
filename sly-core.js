@@ -4403,7 +4403,7 @@ var sly = (async function (exports) {
                             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading skipped - No resources specified`);
                         }
 
-                        let refuelResp = await handleTransportRefueling(fleet, fleet.starbaseCoord, [starbaseX, starbaseY], [destX, destY], true, fuelUnloadDeficit, loadCargoManifest, transportLoadUnloadSingleTx);
+                        let refuelResp = await handleTransportRefueling(fleet, fleet.starbaseCoord, [starbaseX, starbaseY], [destX, destY], false, fuelUnloadDeficit, loadCargoManifest, transportLoadUnloadSingleTx);
                         if (refuelResp.status === 0) {
                             updateFleetState(fleet, refuelResp.detail);
                             fleet.resupplying = false;
