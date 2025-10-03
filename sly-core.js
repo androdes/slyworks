@@ -4319,16 +4319,6 @@ var sly = (async function (exports) {
                 updateFleetState(userFleets[i], 'ERROR: Fleet must start at Target or Starbase');
             }
         }
-        if (userFleets[i].moveTarget !== '') {
-            const targetX = userFleets[i].moveTarget.split(',').length > 1 ? userFleets[i].moveTarget.split(',')[0].trim() : '';
-            const targetY = userFleets[i].moveTarget.split(',').length > 1 ? userFleets[i].moveTarget.split(',')[1].trim() : '';
-            const moveDist = calculateMovementDistance(fleetCoords, [targetX, targetY]);
-            let isStarbaseAndWarpSubwarp = userFleets[i].moveType == 'warpsubwarp' && ((fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) || (fleetCoords[0] == destX && fleetCoords[1] == destY));
-            await handleMovement(i, moveDist, targetX, targetY, isStarbaseAndWarpSubwarp);
-        } else {
-            logger.log(1, `${utils.FleetTimeStamp(userFleets[i].label)} Transporting - ERROR: Fleet must start at Target or Starbase`);
-            updateFleetState(userFleets[i], 'ERROR: Fleet must start at Target or Starbase');
-        }
     }
 
 
@@ -4471,6 +4461,17 @@ var sly = (async function (exports) {
                         await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleet));
                     }
                 }
+            }
+            // Vérifier si on doit se déplacer vers la destination
+            if (fleetCoords[0] !== destX || fleetCoords[1] !== destY) {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Initiating movement to destination: ${fleet.destCoord}`);
+                const moveDist = calculateMovementDistance(fleetCoords, [destX, destY]);
+                let isStarbaseAndWarpSubwarp = userFleets[i].moveType == 'warpsubwarp' && ((fleetCoords[0] == starbaseX && fleetCoords[1] == starbaseY) || (fleetCoords[0] == destX && fleetCoords[1] == destY));
+                logger.log(4, `${utils.FleetTimeStamp(fleet.label)} Moving to starbase: ${fleet.destCoord}`);
+                await handleMovement(i, moveDist, destX, destY, isStarbaseAndWarpSubwarp);
+
+                fleet.moving = false; // Attendre d'être à la destination
+                await GM.setValue(fleet.publicKey.toString(), JSON.stringify(fleet));
             }
         }
 
