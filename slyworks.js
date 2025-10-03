@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SAWORK
 // @namespace    http://tampermonkey.net/
-// @version      0.0.33
+// @version      0.0.34
 // @description  try to take over the world!
 // @author       SLY w/ Contributions by niofox, SkyLove512, anthonyra, [AEP] Valkynen, Risingson, Swift42
 // @match        https://*.based.staratlas.com/
@@ -2669,7 +2669,7 @@
                     slyModule.getUserFleets()[fleetIndex].startingCoords = [coords[0], coords[1]];
                     slyModule.getUserFleets()[fleetIndex].loadCargo = JSON.stringify(loadCargoManifest);
                     slyModule.getUserFleets()[fleetIndex].unloadCargo = JSON.stringify(unloadCargoManifest);
-
+                    slyModule.getUserFleets()[fleetIndex].moveTarget = destCoordsStr;
                     logger.log(4, `Ravitaillement configuré pour ${fleet.label}:`, {
                         starbase: fleetParsedData.starbase,
                         destination: fleetParsedData.dest,
