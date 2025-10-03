@@ -408,7 +408,7 @@ var sly = (async function (exports) {
             minerSupplySingleTx: true,
             minerKeep1: true,
             starbaseKeep1: false,
-            queueExitWarpSubwarp: false,
+            queueExitWarpSubwarp: true,
 
             emailInterface: utils.parseStringDefault(globalSettings.emailInterface, ''),
 
