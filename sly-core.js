@@ -401,7 +401,7 @@ var sly = (async function (exports) {
             craftingTxMultiplier: utils.parseIntDefault(globalSettings.craftingTxMultiplier, 200),
             craftingTxAffectsAutoFee: utils.parseBoolDefault(globalSettings.craftingTxAffectsAutoFee, true),
 
-            transportKeep1: false,
+            transportKeep1: true,
             transportLoadUnloadSingleTx: true,
             transportUnloadsUnknownRSS: utils.parseBoolDefault(globalSettings.transportUnloadsUnknownRSS, false),
             minerUnloadsAll: false,
@@ -4367,6 +4367,7 @@ var sly = (async function (exports) {
                     if (checkCargoResult.needToLoad || checkCargoResult.needToUnload || fuelToAdd > 0 || needToLoadCrew > 0 || needToUnloadCrew > 0) {
                         let transportLoadUnloadSingleTx = globalSettings.transportLoadUnloadSingleTx;
                         let transactions = [];
+                        let unloadedAmountInTransaction = 0;
 
                         let resp = await execDock(fleet, fleet.starbaseCoord, transportLoadUnloadSingleTx);
                         if (resp) transactions.push(resp);
@@ -4390,15 +4391,18 @@ var sly = (async function (exports) {
                                 transactions.push(crewResp);
                             }
                         }
-
+                        //Unloading at Target
+                        let fuelUnloadDeficit = 0;
                         if (hasUnloadManifest || checkCargoResult.needToUnload) {
                             resp = await handleTransportUnloading(fleet, fleet.starbaseCoord, unloadCargoManifest, transportLoadUnloadSingleTx);
+                            fuelUnloadDeficit = unloadResult.fuelUnloadDeficit;
                             transactions = transactions.concat(resp.transactions);
+                            unloadedAmountInTransaction = unloadResult.unloadedAmount;
                         } else {
                             logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading skipped - No resources specified`);
                         }
 
-                        let refuelResp = await handleTransportRefueling(fleet, fleet.starbaseCoord, [starbaseX, starbaseY], [destX, destY], true, 0, loadCargoManifest, transportLoadUnloadSingleTx);
+                        let refuelResp = await handleTransportRefueling(fleet, fleet.starbaseCoord, [starbaseX, starbaseY], [destX, destY], true, fuelUnloadDeficit, loadCargoManifest, transportLoadUnloadSingleTx);
                         if (refuelResp.status === 0) {
                             updateFleetState(fleet, refuelResp.detail);
                             fleet.resupplying = false;
@@ -4898,7 +4902,7 @@ var sly = (async function (exports) {
                 }
             }
         }
-        //Fuel bank unloading
+        /*//Fuel bank unloading
         const fuelEntry = transportManifest.find(e => e.res === fuelMint);
         if (fuelEntry) {
             let currentFuelCnt = await getFleetFuelCount(fleet);
@@ -4913,7 +4917,7 @@ var sly = (async function (exports) {
                     transactions.push(resp);
                 }
             }
-        }
+        }*/
 
         return {fuelUnloadDeficit, transactions, unloadedAmount};
     }
