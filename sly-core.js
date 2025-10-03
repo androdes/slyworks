@@ -4821,13 +4821,7 @@ var sly = (async function (exports) {
 
         // ÉTAPE 4: Ajouter le fuel nécessaire
         if (fuelToAdd > 0) {
-            const cargoHolds = await getStarbasePlayerCargoHolds(starbaseCoord);
-            const cargoHold = getStarbasePlayerCargoMaxItem(cargoHolds, sageGameAcct.account.mints.fuel.toString());
-            if (!cargoHold) {
-                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: No fuel available at starbase`);
-                fuelResp.detail = 'ERROR: No fuel available at starbase';
-                return fuelResp;
-            }
+
             logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd} ${topupFuel ? '(Topped up)' : ''}`);
             let execResp = await fuelFleet(fleet, starbaseCoord, fuelData.account, fuelToAdd, returnTx);
             logger.log(4, `${JSON.stringify(execResp)}`);
