@@ -46,7 +46,7 @@ var sly = (async function (exports) {
     const programPK = new solanaWeb3.PublicKey(programAddy);
     const tokenProgramPK = new solanaWeb3.PublicKey(tokenProgAddy);
     let initComplete = false;
-    
+
     let globalErrorTracker = {'firstErrorTime': 0, 'errorCount': 0};
 
     const anchorProvider = new BrowserAnchor.anchor.AnchorProvider(rpc.getReadConnection(), null, null);
@@ -3155,12 +3155,12 @@ var sly = (async function (exports) {
         }
     }
 
-    
 
 
-    
 
-    
+
+
+
 
 
     async function assistStatusToggle() {
@@ -4669,43 +4669,54 @@ var sly = (async function (exports) {
         return fuelResp;
     }
 
+    async function getStarbasePlayerFuelAmount(starbasePlayer, fuelMint) {
+        const tokenAccounts = await rpc.getReadConnection().getParsedTokenAccountsByOwner(starbasePlayer, {
+            programId: tokenProgramPK,
+            mint: fuelMint
+        });
+        return tokenAccounts.value.reduce((total, account) => total + account.account.data.parsed.info.tokenAmount.uiAmount, 0);
+    }
+
     async function handleTransportRefueling(fleet, starbaseCoord, currentPos, targetPos, roundTrip = true, amountToDropOff = 0, transportManifest, returnTx) {
+        let fuelResp = { status: 0, detail: '', amount: 0, alreadyLoaded: 0, transactions: [] };
         logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ⛽ Refueling`);
         updateFleetState(fleet, 'Refueling');
-        let fuelResp = {status: 0, detail: '', amount: 0};
+
+        // Validation des entrées
+        if (!Array.isArray(transportManifest) || transportManifest.length === 0) {
+            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Invalid or empty transportManifest`);
+            fuelResp.detail = 'ERROR: Invalid or empty transportManifest';
+            return fuelResp;
+        }
+        if (amountToDropOff < 0 || !starbaseCoord || !currentPos || !targetPos || !fleet.fuelTank) {
+            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Invalid parameters`);
+            fuelResp.detail = 'ERROR: Invalid refueling parameters';
+            return fuelResp;
+        }
 
         const fuelData = await getFleetFuelData(fleet, currentPos, targetPos, roundTrip);
+        if (!fuelData || typeof fuelData.amount !== 'number' || typeof fuelData.capacity !== 'number' ||
+            typeof fuelData.fuelNeeded !== 'number' || fuelData.amount < 0 || fuelData.capacity <= 0 || fuelData.fuelNeeded < 0) {
+            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Invalid fuel data`);
+            fuelResp.detail = 'ERROR: Invalid fuel data';
+            return fuelResp;
+        }
 
-        // Vérifier si le tank est assez grand pour AU MOINS un trajet simple
-        // (car on peut refueler depuis le cargo à la destination si c'est une starbase)
         const fuelNeededOneWay = roundTrip ? fuelData.fuelNeeded / 2 : fuelData.fuelNeeded;
         if (fuelNeededOneWay > fuelData.capacity) {
-            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for one-way trip`);
+            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Fuel tank too small for one-way trip (need ${fuelNeededOneWay}, capacity ${fuelData.capacity})`);
             fuelResp.detail = 'ERROR: Fuel tank too small for one-way trip';
             return fuelResp;
         }
 
-        // Si round trip, vérifier qu'on a assez de fuel total (tank + cargo) pour le voyage complet
-        if (roundTrip) {
-            const fuelEntry = transportManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || {amt: 0};
-            const totalFuelAvailable = fuelData.amount + fuelEntry.amt;
-            if (fuelData.fuelNeeded > totalFuelAvailable) {
-                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Not enough total fuel (tank + cargo) for round trip`);
-                fuelResp.detail = 'ERROR: Not enough total fuel for round trip';
-                return fuelResp;
-            }
-        }
-
-        const fuelEntry = transportManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || {amt: 0};
-        let topupFuel = "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
-
-        // Variables pour tracker l'état du fuel
+        const fuelEntry = transportManifest.find(e => e.res === sageGameAcct.account.mints.fuel.toString()) || { amt: 0 };
+        let topupFuel = transportManifest.length > 0 && "topupFuel" in transportManifest[0] ? transportManifest[0].topupFuel : false;
         let currentFuelInTank = fuelData.amount;
         let fuelInCargo = fuelEntry.amt;
         let transactions = [];
         let alreadyLoaded = 0;
 
-        //Log fuel readouts initiaux
+        // Log fuel readouts initiaux
         const initialExtraFuel = Math.floor(currentFuelInTank - fuelData.fuelNeeded);
         logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Current Fuel: ${currentFuelInTank}`);
         logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Warp Cost: ${fuelData.warpCost}`);
@@ -4715,22 +4726,22 @@ var sly = (async function (exports) {
 
         // ÉTAPE 1: Gérer le déchargement de fuel si demandé
         if (amountToDropOff > 0) {
-            // Calculer combien on peut/doit décharger depuis le tank
             const extraFuelInTank = Math.max(0, currentFuelInTank - fuelData.fuelNeeded);
             const fuelToUnloadFromTank = Math.min(amountToDropOff, extraFuelInTank);
-
             if (fuelToUnloadFromTank > 0) {
                 logger.log(1, `${utils.FleetTimeStamp(fleet.label)} Unloading extra fuel from tank: ${fuelToUnloadFromTank}`);
                 let resp = await execCargoFromFleetToStarbase(fleet, fleet.fuelTank, sageGameAcct.account.mints.fuel.toString(), starbaseCoord, fuelToUnloadFromTank, returnTx);
+                if (!resp) {
+                    logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Failed to unload fuel from tank`);
+                    fuelResp.detail = 'ERROR: Failed to unload fuel from tank';
+                    return fuelResp;
+                }
                 currentFuelInTank -= fuelToUnloadFromTank;
                 alreadyLoaded -= fuelToUnloadFromTank;
                 if (returnTx && resp) {
                     transactions.push(resp);
                 }
             }
-
-            // Si on a déchargé moins que demandé, ajuster fuelInCargo
-            // (on ne charge pas le cargo dans le tank juste pour le décharger - on réduit simplement la quantité qu'on va charger plus tard)
             const remainingToDropOff = amountToDropOff - fuelToUnloadFromTank;
             if (remainingToDropOff > 0 && fuelInCargo > 0) {
                 const fuelNotToLoad = Math.min(remainingToDropOff, fuelInCargo);
@@ -4740,7 +4751,54 @@ var sly = (async function (exports) {
             }
         }
 
-        // ÉTAPE 2: Calculer combien de fuel il faut ajouter
+        // ÉTAPE 2: Vérifier qu'on a assez de fuel total APRÈS le drop-off
+        const totalFuelAvailable = currentFuelInTank + fuelInCargo;
+        if (roundTrip && fuelData.fuelNeeded > totalFuelAvailable) {
+            const fuelNeededReturn = fuelData.fuelNeeded / 2;
+            const fuelAvailableForReturn = fuelInCargo;
+            if (fuelAvailableForReturn < fuelNeededReturn) {
+                logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Checking destination fuel availability...`);
+                let destinationFuelAmount;
+                try {
+                    let targetStarbasePlayer;
+                    if (Array.isArray(targetPos) && targetPos.length === 2) {
+                        const [x, y] = targetPos;
+                        const targetStarbase = await getStarbaseFromCoords(x, y);
+                        if (!targetStarbase) {
+                            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: No starbase found at coordinates [${x}, ${y}]`);
+                            fuelResp.detail = `ERROR: No starbase found at coordinates [${x}, ${y}]`;
+                            return fuelResp;
+                        }
+                        targetStarbasePlayer = await getStarbasePlayer(userProfileAcct, targetStarbase.publicKey);
+                        if (!targetStarbasePlayer) {
+                            logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: No starbase player account found for user ${fleet.owner.toBase58()} at starbase ${targetStarbase.publicKey.toBase58()}`);
+                            fuelResp.detail = 'ERROR: No starbase player account found';
+                            return fuelResp;
+                        }
+                        destinationFuelAmount = await getStarbasePlayerFuelAmount(targetStarbasePlayer.publicKey, sageGameAcct.account.mints.fuel);
+                    } else if (targetPos instanceof PublicKey) {
+                        destinationFuelAmount = await getStarbasePlayerFuelAmount(targetPos, sageGameAcct.account.mints.fuel);
+                    } else {
+                        logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Invalid targetPos format`);
+                        fuelResp.detail = 'ERROR: Invalid targetPos format';
+                        return fuelResp;
+                    }
+                } catch (error) {
+                    logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Failed to fetch destination fuel amount`);
+                    fuelResp.detail = 'ERROR: Failed to fetch destination fuel amount';
+                    return fuelResp;
+                }
+                const totalFuelForReturn = fuelAvailableForReturn + destinationFuelAmount;
+                if (totalFuelForReturn < fuelNeededReturn) {
+                    logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Insufficient fuel for return trip (cargo: ${fuelAvailableForReturn}, destination: ${destinationFuelAmount}, needed: ${fuelNeededReturn})`);
+                    fuelResp.detail = `ERROR: Insufficient fuel for return trip (cargo: ${fuelAvailableForReturn}, destination: ${destinationFuelAmount}, needed: ${fuelNeededReturn})`;
+                    return fuelResp;
+                }
+                logger.log(2, `${utils.FleetTimeStamp(fleet.label)} Return trip feasible with destination fuel (${destinationFuelAmount})`);
+            }
+        }
+
+        // ÉTAPE 3: Calculer combien de fuel il faut ajouter
         const totalFuelNeeded = fuelData.fuelNeeded + fuelInCargo;
         let fuelToAdd = Math.min(fuelData.capacity, totalFuelNeeded) - currentFuelInTank;
         fuelResp.alreadyLoaded = alreadyLoaded;
@@ -4748,8 +4806,8 @@ var sly = (async function (exports) {
         // Si on a déjà assez de fuel et qu'on ne force pas le topup
         if (fuelToAdd <= 0 && !topupFuel) {
             fuelResp.status = 1;
-            fuelResp.amount = currentFuelInTank + fuelToAdd - fuelData.fuelNeeded;
-            if (transactions.length > 0) fuelResp.transactions = transactions;
+            fuelResp.amount = currentFuelInTank - fuelData.fuelNeeded;
+            fuelResp.transactions = transactions;
             return fuelResp;
         }
 
@@ -4761,37 +4819,41 @@ var sly = (async function (exports) {
             fuelToAdd = fuelData.capacity - currentFuelInTank;
         }
 
-        // ÉTAPE 3: Ajouter le fuel nécessaire
+        // ÉTAPE 4: Ajouter le fuel nécessaire
         if (fuelToAdd > 0) {
+            const cargoHolds = await getStarbasePlayerCargoHolds(starbaseCoord);
+            const cargoHold = getStarbasePlayerCargoMaxItem(cargoHolds, sageGameAcct.account.mints.fuel.toString());
+            if (!cargoHold) {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: No fuel available at starbase`);
+                fuelResp.detail = 'ERROR: No fuel available at starbase';
+                return fuelResp;
+            }
             logger.log(4, `SB ${starbaseCoord} fuel to add ${fuelToAdd} ${topupFuel ? '(Topped up)' : ''}`);
-
             let execResp = await fuelFleet(fleet, starbaseCoord, fuelData.account, fuelToAdd, returnTx);
             logger.log(4, `${JSON.stringify(execResp)}`);
-
-            if (execResp && execResp.name == 'NotEnoughResource') {
-                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Not enough fuel`);
-                if (globalSettings.emailNotEnoughFFA) await sendEMail(fleet.label + ' not enough fuel', '');
-                fuelResp.detail = 'ERROR: Not enough fuel';
-            } else {
-                fuelResp.status = 1;
-                currentFuelInTank += fuelToAdd;
-                fuelResp.amount = currentFuelInTank - fuelData.fuelNeeded;
-                alreadyLoaded += fuelToAdd;
-                fuelResp.alreadyLoaded = alreadyLoaded;
-                if (returnTx && execResp.tx) {
-                    transactions.push(execResp.tx);
-                }
+            if (!execResp || execResp.name === 'NotEnoughResource') {
+                logger.log(1, `${utils.FleetTimeStamp(fleet.label)} ERROR: Not enough fuel or fuelFleet failed`);
+                if (globalSettings.emailNotEnoughFFA) await sendEMail(fleet.label + ' not enough fuel or fuelFleet failed', '');
+                fuelResp.detail = 'ERROR: Not enough fuel or fuelFleet failed';
+                return fuelResp;
+            }
+            fuelResp.status = 1;
+            currentFuelInTank += fuelToAdd;
+            fuelResp.amount = currentFuelInTank - fuelData.fuelNeeded;
+            alreadyLoaded += fuelToAdd;
+            fuelResp.alreadyLoaded = alreadyLoaded;
+            if (returnTx && execResp.tx) {
+                transactions.push(execResp.tx);
             }
         } else {
             fuelResp.status = 1;
             fuelResp.amount = currentFuelInTank - fuelData.fuelNeeded;
+            fuelResp.transactions = transactions;
         }
 
-        if (transactions.length > 0) fuelResp.transactions = transactions;
-
+        fuelResp.transactions = transactions;
         return fuelResp;
     }
-
 
     //new approach: squeeze as much as possible into a transaction by calculating the exact tx sizes, only make another tx if the max tx size is exceeded
     async function txSliceAndSend(transactions, fleet, opName, priorityFeeMultiplier, maxInstructionsPerTx) {
